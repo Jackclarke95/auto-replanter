@@ -33,7 +33,7 @@ The mod creates a configuration file at `config/autoreplanter.json` on first run
   "damageTools": true,
   "requireTool": true,
   "useValidToolTags": true,
-  "useValidTools": true,
+  "useValidTools": false,
   "onlyDamageOnMatureCrop": true
 }
 ```
