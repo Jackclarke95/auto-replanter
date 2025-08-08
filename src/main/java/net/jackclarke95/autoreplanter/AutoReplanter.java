@@ -149,7 +149,8 @@ public class AutoReplanter implements ModInitializer {
 			world.setBlockState(pos, cropBlock.withAge(0), 3);
 
 			// Damage tools based on config settings
-			if (config.damageTools && config.requireTool && mainTool.isDamageable() && isValidTool(mainTool)) {
+			if (config.damageTools && config.requireTool && mainTool.isDamageable()
+					&& isValidTool(mainTool)) {
 				// Only damage if we should always damage, or if we only damage on mature crops
 				// and this is mature
 				if (!config.onlyDamageOnMatureCrop || isMature) {
@@ -174,11 +175,11 @@ public class AutoReplanter implements ModInitializer {
 
 	/**
 	 * Checks if the given tool is valid for auto-replanting based on configured
-	 * tool validation settings.
+	 * tool validation settings or if it has the Auto Replanter enchantment.
 	 * 
 	 * @param tool the ItemStack representing the tool to check
 	 * @return {@code true} if the tool matches any of the configured validation
-	 *         criteria,
+	 *         criteria or has the Auto Replanter enchantment,
 	 *         {@code false} otherwise
 	 * @see AutoReplanterConfig#validToolTags
 	 * @see AutoReplanterConfig#validTools
@@ -190,11 +191,34 @@ public class AutoReplanter implements ModInitializer {
 			return false;
 		}
 
+		// Check traditional valid tool criteria
 		boolean validByTag = config.useValidToolTags && validToolTags.stream().anyMatch(tool::isIn);
 		boolean validByItem = config.useValidTools && validToolIds.contains(
 				net.minecraft.registry.Registries.ITEM.getId(tool.getItem()).toString());
 
-		return validByTag || validByItem;
+		// Check if tool has Auto Replanter enchantment
+		boolean hasEnchantment = hasAutoReplanterEnchantment(tool);
+
+		return validByTag || validByItem || hasEnchantment;
+	}
+
+	/**
+	 * Checks if the given tool has the Auto Replanter enchantment.
+	 * 
+	 * @param tool the ItemStack to check for the enchantment
+	 * @return {@code true} if the tool has the Auto Replanter enchantment,
+	 *         {@code false} otherwise
+	 */
+	private boolean hasAutoReplanterEnchantment(ItemStack tool) {
+		if (tool.isEmpty()) {
+			return false;
+		}
+
+		// Check enchantments directly by looking through the enchantment map
+		return tool.getEnchantments().getEnchantments().stream()
+				.anyMatch(enchantment -> {
+					return enchantment.matchesId(Identifier.of("autoreplanter", "auto_replanter"));
+				});
 	}
 
 	/**
