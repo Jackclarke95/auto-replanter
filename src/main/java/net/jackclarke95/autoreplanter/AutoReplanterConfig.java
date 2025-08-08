@@ -114,7 +114,7 @@ public class AutoReplanterConfig {
      * @see #validTools
      * @see #useValidToolTags
      */
-    public boolean useValidTools = true;
+    public boolean useValidTools = false;
 
     /**
      * Whether tools should only take damage when harvesting mature crops.

@@ -15,7 +15,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 /**
@@ -94,32 +93,6 @@ public class AutoReplanter implements ModInitializer {
 			// Check if we need a valid tool and if so, whether we have one
 			ItemStack mainTool = player.getMainHandStack();
 
-			// Debug output to chat
-			if (!mainTool.isEmpty()) {
-				Identifier toolId = net.minecraft.registry.Registries.ITEM.getId(mainTool.getItem());
-				player.sendMessage(Text.literal("[AutoReplanter] Tool used: " + toolId), false);
-
-				boolean isValid = isValidTool(mainTool);
-				player.sendMessage(Text.literal("  isValidTool: " + isValid), false);
-
-				// Tool validation details
-				boolean validByTag = config.useValidToolTags && validToolTags.stream().anyMatch(mainTool::isIn);
-				boolean validByItem = config.useValidTools && validToolIds.contains(toolId.toString());
-
-				player.sendMessage(
-						Text.literal(
-								"  validByTag: " + validByTag + " (useValidToolTags: " + config.useValidToolTags + ")"),
-						false);
-				player.sendMessage(
-						Text.literal(
-								"  validByItem: " + validByItem + " (useValidTools: " + config.useValidTools + ")"),
-						false);
-
-				// Show what items are in validToolIds set
-				player.sendMessage(Text.literal("  validToolIds set: " + validToolIds), false);
-				player.sendMessage(Text.literal("  Current tool ID: " + toolId.toString()), false);
-			}
-
 			if (config.requireTool && !isValidTool(mainTool)) {
 				return true;
 			}
@@ -154,8 +127,6 @@ public class AutoReplanter implements ModInitializer {
 
 			// Replant the crop at age 0 (regardless of maturity)
 			world.setBlockState(pos, cropBlock.withAge(0), 3);
-
-			player.sendMessage(Text.literal("[AutoReplanter] Crop replanted successfully"), false);
 
 			// Damage tools based on config settings
 			if (config.damageTools && config.requireTool && mainTool.isDamageable() && isValidTool(mainTool)) {
