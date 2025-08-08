@@ -48,20 +48,28 @@ public class ConfigManager {
      * @see #saveConfig(AutoReplanterConfig)
      */
     public static AutoReplanterConfig loadConfig() {
-        if (Files.exists(CONFIG_PATH)) {
-            try {
-                String json = Files.readString(CONFIG_PATH);
+        try {
+            if (Files.exists(CONFIG_PATH)) {
+                String configData = Files.readString(CONFIG_PATH);
+                AutoReplanterConfig loadedConfig = GSON.fromJson(configData, AutoReplanterConfig.class);
 
-                return GSON.fromJson(json, AutoReplanterConfig.class);
-            } catch (IOException e) {
-                System.err.println("Failed to load config, using defaults: " + e.getMessage());
+                // Validate and fix invalid enum values
+                if (loadedConfig.sneakMode == null) {
+                    loadedConfig.sneakMode = SneakMode.ALWAYS;
+                    // Save the corrected config
+                    saveConfig(loadedConfig);
+                }
+
+                return loadedConfig;
             }
+        } catch (Exception e) {
+            System.err.println("Failed to load Auto Replanter config: " + e.getMessage());
+            System.err.println("Creating new config file with default values.");
         }
 
-        // Create default config if it doesn't exist
+        // Create and save default config
         AutoReplanterConfig defaultConfig = new AutoReplanterConfig();
         saveConfig(defaultConfig);
-
         return defaultConfig;
     }
 

@@ -90,6 +90,26 @@ public class AutoReplanter implements ModInitializer {
 				return true;
 			}
 
+			// Check sneak requirements based on configured mode
+			boolean playerSneaking = player.isSneaking();
+
+			switch (config.getSneakMode()) {
+				case ONLY_SNEAKING:
+					if (!playerSneaking) {
+						return true;
+					}
+					break;
+				case ONLY_STANDING:
+					if (playerSneaking) {
+						return true;
+					}
+					break;
+				case ALWAYS:
+				default:
+					// No sneak restriction
+					break;
+			}
+
 			// Check if we need a valid tool and if so, whether we have one
 			ItemStack mainTool = player.getMainHandStack();
 

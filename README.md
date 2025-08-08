@@ -9,6 +9,7 @@ A Minecraft Fabric mod that automatically replants crops when harvested, elimina
 - **Configurable Tool Requirements**: Choose whether specific tools are required for auto-replanting
 - **Smart Tool Damage**: Tools take durability damage with full enchantment support (such as Unbreaking)
 - **Mature vs Immature Handling**: Different behaviour for fully grown vs growing crops
+- **Sneak Mode Control**: Configure auto-replanting to work always, only while sneaking, or only while standing
 - **Highly Configurable**: Extensive configuration options to customise behaviour
 - **Mod Compatibility**: Works with any modded crops that extend Minecraft's `CropBlock`
 
@@ -33,8 +34,9 @@ The mod creates a configuration file at `config/autoreplanter.json` on first run
   "damageTools": true,
   "requireTool": true,
   "useValidToolTags": true,
-  "useValidTools": true,
-  "onlyDamageOnMatureCrop": true
+  "useValidTools": false,
+  "onlyDamageOnMatureCrop": true,
+  "sneakMode": "ALWAYS"
 }
 ```
 
@@ -46,8 +48,17 @@ The mod creates a configuration file at `config/autoreplanter.json` on first run
 | `damageTools` | Boolean | `true` | Whether tools should take durability damage when used |
 | `requireTool` | Boolean | `true` | Whether a valid tool is required for auto-replanting to occur |
 | `useValidToolTags` | Boolean | `true` | Whether to use tag-based tool validation. When `false`, the `validToolTags` list is ignored |
-| `useValidTools` | Boolean | `true` | Whether to use specific item-based tool validation. When `false`, the `validTools` list is ignored |
+| `useValidTools` | Boolean | `false` | Whether to use specific item-based tool validation. When `false`, the `validTools` list is ignored |
 | `onlyDamageOnMatureCrop` | Boolean | `true` | Whether tools should only take damage when harvesting mature crops |
+| `sneakMode` | String | `"ALWAYS"` | Controls when auto-replanting occurs based on sneak state. Options: `"ALWAYS"`, `"ONLY_SNEAKING"`, `"ONLY_STANDING"` |
+
+### Sneak Mode Options
+
+The `sneakMode` setting controls when auto-replanting should occur based on whether the player is sneaking:
+
+- **`"ALWAYS"`** (default): Auto-replanting works regardless of sneak state
+- **`"ONLY_SNEAKING"`**: Auto-replanting only works while the player is sneaking
+- **`"ONLY_STANDING"`**: Auto-replanting only works while the player is NOT sneaking
 
 ### Tool Validation Systems
 
@@ -79,10 +90,18 @@ You can use both validation systems simultaneously by setting both `useValidTool
 ### Default Behaviour
 
 - Use a hoe (from the `minecraft:hoes` tag) or knife (from the `farmersdelight:tools/knives` tag)
-- Or use a diamond hoe or flint knife (from the specific items list)
+- Works regardless of whether you're sneaking
 - Mature crops drop their items (minus one seed)
 - Crop is automatically replanted
 - Tool takes 1 durability damage
+
+### Sneak-Only Mode
+
+Set `"sneakMode": "ONLY_SNEAKING"` to only auto-replant while sneaking. This gives you precise control over when crops are replanted, preventing accidental replanting when walking through your farm.
+
+### No-Sneak Mode
+
+Set `"sneakMode": "ONLY_STANDING"` to only auto-replant while not sneaking. This allows you to disable auto-replanting by holding sneak, useful when you want to manually break crops without replanting (e.g., when relocating your farm).
 
 ### Tag-Based Tools Only
 
@@ -157,6 +176,14 @@ A: Yes! Set both `useValidToolTags` and `useValidTools` to `true`. A tool will b
 
 A: Set either `useValidToolTags` or `useValidTools` to `false` to disable that respective validation system. The corresponding list (`validToolTags` or `validTools`) will then be ignored.
 
+### **Q: What's the difference between the sneak modes?**
+
+A: `"ALWAYS"` works regardless of sneaking, `"ONLY_SNEAKING"` only works while sneaking (for precise control), and `"ONLY_STANDING"` only works while not sneaking (so you can disable it by sneaking).
+
+### **Q: Can I set an invalid sneak mode?**
+
+A: If you set an invalid sneak mode in the config, the mod will fall back to `"ALWAYS"` behavior.
+
 ## Licence
 
 This project is licensed under the Creative Commons Licence - see the [LICENCE](LICENSE) file for details.
@@ -171,12 +198,13 @@ If you encounter any issues or have suggestions, please:
 
 1. Check the configuration file for proper setup
 2. Ensure the correct validation booleans (`useValidToolTags` and `useValidTools`) are enabled
-3. Report bugs on the [GitHub Issues](https://github.com/Jackclarke95/auto-replanter-1.21.1/issues) page
-4. Join the discussion on [CurseForge](your-curseforge-link-here)
+3. Verify your `sneakMode` setting is one of the valid options
+4. Report bugs on the [GitHub Issues](https://github.com/Jackclarke95/auto-replanter-1.21.1/issues) page
+5. Join the discussion on [CurseForge](your-curseforge-link-here)
 
 ---
 
 **Author**: jackclarke95  
-**Version**: 1.0.0  
+**Version**: 1.1.0  
 **Minecraft**: 1.21.1  
 **Mod Loader**: Fabric
