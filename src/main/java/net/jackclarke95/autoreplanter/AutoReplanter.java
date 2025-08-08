@@ -33,8 +33,6 @@ public class AutoReplanter implements ModInitializer {
 
 			// Check if we're hitting a crop with a knife
 			if (block instanceof CropBlock cropBlock && isKnife(mainTool)) {
-				player.sendMessage(Text.literal("Auto-replanting crop..."), false);
-
 				// Only drop loot if the crop is mature
 				if (isMatureCrop(cropBlock, state)) {
 					// Get the dropped stacks manually
