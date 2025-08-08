@@ -5,6 +5,7 @@ A Minecraft Fabric mod that automatically replants crops when harvested, elimina
 ## Features
 
 - **Automatic Crop Replanting**: Crops are instantly replanted at age 0 when broken
+- **Dual Tool Validation System**: Choose between tag-based and specific item-based tool requirements
 - **Configurable Tool Requirements**: Choose whether specific tools are required for auto-replanting
 - **Smart Tool Damage**: Tools take durability damage with full enchantment support (such as Unbreaking)
 - **Mature vs Immature Handling**: Different behaviour for fully grown vs growing crops
@@ -27,42 +28,73 @@ The mod creates a configuration file at `config/autoreplanter.json` on first run
 ```json
 {
   "validToolTags": ["minecraft:hoes", "farmersdelight:tools/knives"],
+  "validTools": ["minecraft:diamond_hoe", "farmersdelight:flint_knife"],
   "enableAutoReplanting": true,
   "damageTools": true,
   "requireTool": true,
+  "useValidToolTags": true,
+  "useValidTools": true,
   "onlyDamageOnMatureCrop": true
 }
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `validToolTags` | Array | `["minecraft:hoes", "farmersdelight:tools/knives"]` | List of item tags that are considered valid tools for auto-replanting |
+| `validToolTags` | Array | `["minecraft:hoes", "farmersdelight:tools/knives"]` | List of item tags that are considered valid tools for auto-replanting. **Only takes effect when `useValidToolTags` is `true`** |
+| `validTools` | Array | `["minecraft:diamond_hoe", "farmersdelight:flint_knife"]` | List of specific item IDs that are considered valid tools for auto-replanting. **Only takes effect when `useValidTools` is `true`** |
 | `enableAutoReplanting` | Boolean | `true` | Master switch to enable/disable the mod |
 | `damageTools` | Boolean | `true` | Whether tools should take durability damage when used |
 | `requireTool` | Boolean | `true` | Whether a valid tool is required for auto-replanting to occur |
+| `useValidToolTags` | Boolean | `true` | Whether to use tag-based tool validation. When `false`, the `validToolTags` list is ignored |
+| `useValidTools` | Boolean | `true` | Whether to use specific item-based tool validation. When `false`, the `validTools` list is ignored |
 | `onlyDamageOnMatureCrop` | Boolean | `true` | Whether tools should only take damage when harvesting mature crops |
 
-### Tool Tags
+### Tool Validation Systems
+
+The mod offers two complementary tool validation systems that can be used independently or together:
+
+#### Tag-Based Validation (`validToolTags`)
 
 The `validToolTags` option accepts item tags in the following formats:
 
 - Simple tags: `"minecraft:hoes"`
 - Category tags: `"farmersdelight:tools/knives"`
 
-You can add tags from any mod to customise which tools trigger auto-replanting.
+You can add tags from any mod to customise which tools trigger auto-replanting. **This list only takes effect when `useValidToolTags` is set to `true`.**
+
+#### Specific Item Validation (`validTools`)
+
+The `validTools` option accepts specific item IDs in the format:
+
+- `"namespace:item_id"` (e.g., `"minecraft:diamond_hoe"`, `"farmersdelight:flint_knife"`)
+
+This allows you to specify exact tools that should work with auto-replanting. **This list only takes effect when `useValidTools` is set to `true`.**
+
+#### Combining Both Systems
+
+You can use both validation systems simultaneously by setting both `useValidToolTags` and `useValidTools` to `true`. In this case, a tool is considered valid if it matches **either** the tag-based criteria **or** the specific item criteria.
 
 ## Usage Examples
 
 ### Default Behaviour
 
-- Use a hoe or knife to break crops
+- Use a hoe (from the `minecraft:hoes` tag) or knife (from the `farmersdelight:tools/knives` tag)
+- Or use a diamond hoe or flint knife (from the specific items list)
 - Mature crops drop their items (minus one seed)
 - Crop is automatically replanted
 - Tool takes 1 durability damage
 
+### Tag-Based Tools Only
+
+Set `"useValidTools": false` to only use tag-based validation. The `validTools` list will be ignored.
+
+### Specific Tools Only
+
+Set `"useValidToolTags": false` to only use specific item validation. The `validToolTags` list will be ignored.
+
 ### No Tool Required
 
-Set `"requireTool": false` to enable auto-replanting regardless of what tool is used (or no tool at all).
+Set `"requireTool": false` to enable auto-replanting regardless of what tool is used (or no tool at all). When this is disabled, both validation systems are bypassed.
 
 ### Preserve Tool Durability
 
@@ -85,7 +117,7 @@ The mod works with:
 - **Minecraft Version**: 1.21.1
 - **Mod Loader**: Fabric
 - **Dependencies**: Fabric API
-- **Compatible with**: Most farming and agriculture mods, specifically those that extend Minecraft'sa `CropBlock` class.
+- **Compatible with**: Most farming and agriculture mods, specifically those that extend Minecraft's `CropBlock` class.
 
 ## Technical Details
 
@@ -93,24 +125,41 @@ The mod works with:
 - Respects enchantments like Unbreaking
 - Server-side only logic (works on both single-player and multiplayer)
 - Automatic config generation and validation
+- Dual tool validation system supports both tag-based and item-specific matching
 
 ## FAQ
 
-**Q: Does this work on servers?**
+#### **Q: Does this work on servers?**
+
 A: Yes! The mod works on both single-player and multiplayer servers.
 
-**Q: Can I change the config without restarting?**
+#### **Q: Can I change the config without restarting?**
+
 A: No, you need to restart Minecraft (or the server) for config changes to take effect.
 
-**Q: Does this work with modded crops?**
+#### **Q: Does this work with modded crops?**
+
 A: Yes, as long as the modded crops extend Minecraft's `CropBlock` class, then this should work.
 
-**Q: Will tools with Unbreaking last longer?**
+#### **Q: Will tools with Unbreaking last longer?**
+
 A: Yes! The mod uses Minecraft's built-in durability system, so all enchantments work normally.
+
+#### **Q: I added items to `validTools` but they don't work. Why?**
+
+A: Make sure `useValidTools` is set to `true` in your config. If it's `false`, the `validTools` list is ignored.
+
+#### **Q: Can I use both tag-based and specific item validation?**
+
+A: Yes! Set both `useValidToolTags` and `useValidTools` to `true`. A tool will be considered valid if it matches either system.
+
+#### **Q: How do I disable one of the validation systems?**
+
+A: Set either `useValidToolTags` or `useValidTools` to `false` to disable that respective validation system. The corresponding list (`validToolTags` or `validTools`) will then be ignored.
 
 ## Licence
 
-This project is licensed under the MIT Licence - see the [LICENCE](LICENSE) file for details.
+This project is licensed under the Creative Commons Licence - see the [LICENCE](LICENSE) file for details.
 
 ## Contributing
 
@@ -121,8 +170,9 @@ Contributions are welcome! Please feel free to submit a Pull Request on [GitHub]
 If you encounter any issues or have suggestions, please:
 
 1. Check the configuration file for proper setup
-2. Report bugs on the [GitHub Issues](your-github-link-here) page
-3. Join the discussion on [CurseForge](your-curseforge-link-here)
+2. Ensure the correct validation booleans (`useValidToolTags` and `useValidTools`) are enabled
+3. Report bugs on the [GitHub Issues](your-github-link-here) page
+4. Join the discussion on [CurseForge](your-curseforge-link-here)
 
 ---
 
