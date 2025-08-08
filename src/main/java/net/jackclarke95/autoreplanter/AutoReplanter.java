@@ -43,17 +43,17 @@ public class AutoReplanter implements ModInitializer {
 				return true;
 			}
 
+			// Check if we need a valid tool and if so, whether we have one
 			ItemStack mainTool = player.getMainHandStack();
 
-			// Check if we need a valid tool and if so, whether we have one
 			if (config.requireTool && !isValidTool(mainTool)) {
 				return true;
 			}
 
-			world = (ServerWorld) world;
+			boolean isMature = isMatureCrop(cropBlock, state);
 
 			// Only drop loot if the crop is mature
-			if (isMatureCrop(cropBlock, state)) {
+			if (isMature) {
 				// Get the dropped stacks manually
 				List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
 						player,
@@ -81,9 +81,13 @@ public class AutoReplanter implements ModInitializer {
 			// Replant the crop at age 0 (regardless of maturity)
 			world.setBlockState(pos, cropBlock.withAge(0), 3);
 
-			// Only damage tools if tool requirement is enabled and we have a valid tool
+			// Damage tools based on config settings
 			if (config.damageTools && config.requireTool && mainTool.isDamageable() && isValidTool(mainTool)) {
-				mainTool.damage(1, player, EquipmentSlot.MAINHAND);
+				// Only damage if we should always damage, or if we only damage on mature crops
+				// and this is mature
+				if (!config.onlyDamageOnMatureCrop || isMature) {
+					mainTool.damage(1, player, EquipmentSlot.MAINHAND);
+				}
 			}
 
 			return false; // Cancel the default break
