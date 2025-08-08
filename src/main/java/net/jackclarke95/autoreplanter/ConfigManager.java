@@ -51,6 +51,7 @@ public class ConfigManager {
         if (Files.exists(CONFIG_PATH)) {
             try {
                 String json = Files.readString(CONFIG_PATH);
+
                 return GSON.fromJson(json, AutoReplanterConfig.class);
             } catch (IOException e) {
                 System.err.println("Failed to load config, using defaults: " + e.getMessage());
@@ -60,6 +61,7 @@ public class ConfigManager {
         // Create default config if it doesn't exist
         AutoReplanterConfig defaultConfig = new AutoReplanterConfig();
         saveConfig(defaultConfig);
+
         return defaultConfig;
     }
 

@@ -25,8 +25,8 @@ public class AutoReplanterConfig {
      * @see #requireTool
      */
     public List<String> validToolTags = List.of(
-            "farmersdelight:tools/knives",
-            "minecraft:hoes");
+            "minecraft:hoes",
+            "farmersdelight:tools/knives");
 
     /**
      * Whether automatic replanting is enabled.
