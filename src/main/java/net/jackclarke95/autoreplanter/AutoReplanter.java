@@ -1,9 +1,12 @@
 package net.jackclarke95.autoreplanter;
 
+import java.util.List;
+
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.minecraft.block.Block;
 import net.minecraft.block.CropBlock;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKeys;
@@ -41,17 +44,27 @@ public class AutoReplanter implements ModInitializer {
 			if (block instanceof CropBlock cropBlock && isKnife(mainTool)) {
 				player.sendMessage(Text.literal("Auto-replanting crop..."), false);
 
-				// Drop loot for the current crop if it's mature
-				if (isMatureCrop(cropBlock, state)) {
-					Block.dropStacks(state, world, pos, blockEntity, player, mainTool);
-					// // subtract one crop seed from the dropped loot
-					// var droppedLoot = Block.getDroppedStacks(state, (ServerWorld) world, pos,
-					// blockEntity);
+				// Get the dropped stacks manually
+				List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
+						player,
+						mainTool);
 
-					// droppedLoot.decrement(1);
-					// world.spawnEntity(new ItemEntity(world, pos.getX(), pos.getY(), pos.getZ(),
-					// droppedLoot));
+				// Get the seed item for this crop
+				Item seedItem = cropBlock.asItem();
 
+				// Process each dropped stack
+				for (ItemStack stack : droppedStacks) {
+					if (stack.getItem() == seedItem && stack.getCount() > 1) {
+						// Decrement by 1 if it's the seed and there's more than 1
+						stack.decrement(1);
+					}
+
+					// Spawn the modified stack if it's not empty
+					if (!stack.isEmpty()) {
+						ItemEntity itemEntity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5,
+								pos.getZ() + 0.5, stack);
+						world.spawnEntity(itemEntity);
+					}
 				}
 
 				// Replant the crop at age 0
