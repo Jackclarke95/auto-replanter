@@ -15,6 +15,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 /**
@@ -49,10 +50,8 @@ public class AutoReplanter implements ModInitializer {
 	/** Set of parsed tool tags that are considered valid for auto-replanting. */
 	private Set<TagKey<Item>> validToolTags;
 
-	/**
-	 * Set of parsed specific tools that are considered valid for auto-replanting.
-	 */
-	private Set<Item> validToolItems;
+	/** Set of tool ID strings that are considered valid for auto-replanting. */
+	private Set<String> validToolIds;
 
 	/**
 	 * Initializes the Auto Replanter mod.
@@ -62,7 +61,7 @@ public class AutoReplanter implements ModInitializer {
 	 * <ul>
 	 * <li>Loads the configuration from the config file</li>
 	 * <li>Parses tool tags from string format to TagKey objects</li>
-	 * <li>Parses specific tools from string format to Item objects</li>
+	 * <li>Stores valid tool IDs as strings for direct comparison</li>
 	 * <li>Registers the block break event handler</li>
 	 * </ul>
 	 * </p>
@@ -77,10 +76,8 @@ public class AutoReplanter implements ModInitializer {
 				.map(this::parseTagString)
 				.collect(Collectors.toSet());
 
-		// Convert string items to Item objects
-		validToolItems = config.validTools.stream()
-				.map(this::parseItemString)
-				.collect(Collectors.toSet());
+		// Store valid tool IDs as strings for direct comparison
+		validToolIds = Set.copyOf(config.validTools);
 
 		PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
 			if (world.isClient || !config.enableAutoReplanting) {
@@ -96,6 +93,32 @@ public class AutoReplanter implements ModInitializer {
 
 			// Check if we need a valid tool and if so, whether we have one
 			ItemStack mainTool = player.getMainHandStack();
+
+			// Debug output to chat
+			if (!mainTool.isEmpty()) {
+				Identifier toolId = net.minecraft.registry.Registries.ITEM.getId(mainTool.getItem());
+				player.sendMessage(Text.literal("[AutoReplanter] Tool used: " + toolId), false);
+
+				boolean isValid = isValidTool(mainTool);
+				player.sendMessage(Text.literal("  isValidTool: " + isValid), false);
+
+				// Tool validation details
+				boolean validByTag = config.useValidToolTags && validToolTags.stream().anyMatch(mainTool::isIn);
+				boolean validByItem = config.useValidTools && validToolIds.contains(toolId.toString());
+
+				player.sendMessage(
+						Text.literal(
+								"  validByTag: " + validByTag + " (useValidToolTags: " + config.useValidToolTags + ")"),
+						false);
+				player.sendMessage(
+						Text.literal(
+								"  validByItem: " + validByItem + " (useValidTools: " + config.useValidTools + ")"),
+						false);
+
+				// Show what items are in validToolIds set
+				player.sendMessage(Text.literal("  validToolIds set: " + validToolIds), false);
+				player.sendMessage(Text.literal("  Current tool ID: " + toolId.toString()), false);
+			}
 
 			if (config.requireTool && !isValidTool(mainTool)) {
 				return true;
@@ -131,6 +154,8 @@ public class AutoReplanter implements ModInitializer {
 
 			// Replant the crop at age 0 (regardless of maturity)
 			world.setBlockState(pos, cropBlock.withAge(0), 3);
+
+			player.sendMessage(Text.literal("[AutoReplanter] Crop replanted successfully"), false);
 
 			// Damage tools based on config settings
 			if (config.damageTools && config.requireTool && mainTool.isDamageable() && isValidTool(mainTool)) {
@@ -170,8 +195,13 @@ public class AutoReplanter implements ModInitializer {
 	 * @see AutoReplanterConfig#useValidTools
 	 */
 	private boolean isValidTool(ItemStack tool) {
+		if (tool.isEmpty()) {
+			return false;
+		}
+
 		boolean validByTag = config.useValidToolTags && validToolTags.stream().anyMatch(tool::isIn);
-		boolean validByItem = config.useValidTools && validToolItems.contains(tool.getItem());
+		boolean validByItem = config.useValidTools && validToolIds.contains(
+				net.minecraft.registry.Registries.ITEM.getId(tool.getItem()).toString());
 
 		return validByTag || validByItem;
 	}
@@ -200,25 +230,5 @@ public class AutoReplanter implements ModInitializer {
 
 			return TagKey.of(RegistryKeys.ITEM, Identifier.of(namespace, path));
 		}
-	}
-
-	/**
-	 * Parses a string representation of an item ID into an Item object.
-	 * 
-	 * @param itemString the string representation of the item (e.g.,
-	 *                   "minecraft:diamond_hoe")
-	 * @return the Item object representing the parsed item, or null if not found
-	 */
-	private Item parseItemString(String itemString) {
-		try {
-			String[] parts = itemString.split(":");
-			if (parts.length == 2) {
-				Identifier itemId = Identifier.of(parts[0], parts[1]);
-				return net.minecraft.registry.Registries.ITEM.get(itemId);
-			}
-		} catch (Exception e) {
-			System.err.println("Failed to parse item string: " + itemString + " - " + e.getMessage());
-		}
-		return null;
 	}
 }

@@ -129,31 +129,31 @@ The mod works with:
 
 ## FAQ
 
-#### **Q: Does this work on servers?**
+### **Q: Does this work on servers?**
 
 A: Yes! The mod works on both single-player and multiplayer servers.
 
-#### **Q: Can I change the config without restarting?**
+### **Q: Can I change the config without restarting?**
 
 A: No, you need to restart Minecraft (or the server) for config changes to take effect.
 
-#### **Q: Does this work with modded crops?**
+### **Q: Does this work with modded crops?**
 
 A: Yes, as long as the modded crops extend Minecraft's `CropBlock` class, then this should work.
 
-#### **Q: Will tools with Unbreaking last longer?**
+### **Q: Will tools with Unbreaking last longer?**
 
 A: Yes! The mod uses Minecraft's built-in durability system, so all enchantments work normally.
 
-#### **Q: I added items to `validTools` but they don't work. Why?**
+### **Q: I added items to `validTools` but they don't work. Why?**
 
 A: Make sure `useValidTools` is set to `true` in your config. If it's `false`, the `validTools` list is ignored.
 
-#### **Q: Can I use both tag-based and specific item validation?**
+### **Q: Can I use both tag-based and specific item validation?**
 
 A: Yes! Set both `useValidToolTags` and `useValidTools` to `true`. A tool will be considered valid if it matches either system.
 
-#### **Q: How do I disable one of the validation systems?**
+### **Q: How do I disable one of the validation systems?**
 
 A: Set either `useValidToolTags` or `useValidTools` to `false` to disable that respective validation system. The corresponding list (`validToolTags` or `validTools`) will then be ignored.
 
