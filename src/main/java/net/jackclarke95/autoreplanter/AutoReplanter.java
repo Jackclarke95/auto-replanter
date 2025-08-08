@@ -6,6 +6,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.minecraft.block.Block;
 import net.minecraft.block.CropBlock;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -70,6 +71,11 @@ public class AutoReplanter implements ModInitializer {
 
 			// Replant the crop at age 0 (regardless of maturity)
 			world.setBlockState(pos, cropBlock.withAge(0), 3);
+
+			// Damage the tool by 1 durability point
+			if (mainTool.isDamageable()) {
+				mainTool.damage(1, player, EquipmentSlot.MAINHAND);
+			}
 
 			return false; // Cancel the default break
 		});
