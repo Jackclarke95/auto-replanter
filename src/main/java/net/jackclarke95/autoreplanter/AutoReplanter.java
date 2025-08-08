@@ -50,6 +50,11 @@ public class AutoReplanter implements ModInitializer {
 	private Set<TagKey<Item>> validToolTags;
 
 	/**
+	 * Set of parsed specific tools that are considered valid for auto-replanting.
+	 */
+	private Set<Item> validToolItems;
+
+	/**
 	 * Initializes the Auto Replanter mod.
 	 * <p>
 	 * This method is called by Fabric when the mod is loaded. It performs the
@@ -57,6 +62,7 @@ public class AutoReplanter implements ModInitializer {
 	 * <ul>
 	 * <li>Loads the configuration from the config file</li>
 	 * <li>Parses tool tags from string format to TagKey objects</li>
+	 * <li>Parses specific tools from string format to Item objects</li>
 	 * <li>Registers the block break event handler</li>
 	 * </ul>
 	 * </p>
@@ -69,6 +75,11 @@ public class AutoReplanter implements ModInitializer {
 		// Convert string tags to TagKey objects
 		validToolTags = config.validToolTags.stream()
 				.map(this::parseTagString)
+				.collect(Collectors.toSet());
+
+		// Convert string items to Item objects
+		validToolItems = config.validTools.stream()
+				.map(this::parseItemString)
 				.collect(Collectors.toSet());
 
 		PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
@@ -147,16 +158,22 @@ public class AutoReplanter implements ModInitializer {
 
 	/**
 	 * Checks if the given tool is valid for auto-replanting based on configured
-	 * tool tags.
+	 * tool validation settings.
 	 * 
 	 * @param tool the ItemStack representing the tool to check
-	 * @return {@code true} if the tool matches any of the configured valid tool
-	 *         tags,
+	 * @return {@code true} if the tool matches any of the configured validation
+	 *         criteria,
 	 *         {@code false} otherwise
 	 * @see AutoReplanterConfig#validToolTags
+	 * @see AutoReplanterConfig#validTools
+	 * @see AutoReplanterConfig#useValidToolTags
+	 * @see AutoReplanterConfig#useValidTools
 	 */
 	private boolean isValidTool(ItemStack tool) {
-		return validToolTags.stream().anyMatch(tool::isIn);
+		boolean validByTag = config.useValidToolTags && validToolTags.stream().anyMatch(tool::isIn);
+		boolean validByItem = config.useValidTools && validToolItems.contains(tool.getItem());
+
+		return validByTag || validByItem;
 	}
 
 	/**
@@ -183,5 +200,25 @@ public class AutoReplanter implements ModInitializer {
 
 			return TagKey.of(RegistryKeys.ITEM, Identifier.of(namespace, path));
 		}
+	}
+
+	/**
+	 * Parses a string representation of an item ID into an Item object.
+	 * 
+	 * @param itemString the string representation of the item (e.g.,
+	 *                   "minecraft:diamond_hoe")
+	 * @return the Item object representing the parsed item, or null if not found
+	 */
+	private Item parseItemString(String itemString) {
+		try {
+			String[] parts = itemString.split(":");
+			if (parts.length == 2) {
+				Identifier itemId = Identifier.of(parts[0], parts[1]);
+				return net.minecraft.registry.Registries.ITEM.get(itemId);
+			}
+		} catch (Exception e) {
+			System.err.println("Failed to parse item string: " + itemString + " - " + e.getMessage());
+		}
+		return null;
 	}
 }

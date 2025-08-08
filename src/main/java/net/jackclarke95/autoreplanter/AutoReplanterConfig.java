@@ -23,10 +23,26 @@ public class AutoReplanterConfig {
      * </p>
      * 
      * @see #requireTool
+     * @see #useValidToolTags
      */
     public List<String> validToolTags = List.of(
             "minecraft:hoes",
             "farmersdelight:tools/knives");
+
+    /**
+     * List of specific item IDs that are considered valid tools for automatic
+     * replanting.
+     * <p>
+     * Items should be specified in the format "namespace:item_id" (e.g.,
+     * "minecraft:diamond_hoe", "farmersdelight:flint_knife").
+     * </p>
+     * 
+     * @see #requireTool
+     * @see #useValidTools
+     */
+    public List<String> validTools = List.of(
+            "minecraft:diamond_hoe",
+            "farmersdelight:flint_knife");
 
     /**
      * Whether automatic replanting is enabled.
@@ -58,16 +74,47 @@ public class AutoReplanterConfig {
      * Whether a valid tool is required for automatic replanting to occur.
      * <p>
      * When set to {@code true}, crops will only be automatically replanted
-     * when broken with a tool that matches one of the {@link #validToolTags}.
+     * when broken with a tool that matches the configured validation criteria.
      * When set to {@code false}, crops will be replanted regardless of the
      * tool used (or if no tool is used at all).
      * </p>
      * 
      * @default true
      * @see #validToolTags
+     * @see #validTools
+     * @see #useValidToolTags
+     * @see #useValidTools
      * @see #damageTools
      */
     public boolean requireTool = true;
+
+    /**
+     * Whether to use tag-based tool validation.
+     * <p>
+     * When set to {@code true}, tools are validated against the
+     * {@link #validToolTags} list.
+     * This can be used in combination with {@link #useValidTools}.
+     * </p>
+     * 
+     * @default true
+     * @see #validToolTags
+     * @see #useValidTools
+     */
+    public boolean useValidToolTags = true;
+
+    /**
+     * Whether to use specific item-based tool validation.
+     * <p>
+     * When set to {@code true}, tools are validated against the {@link #validTools}
+     * list.
+     * This can be used in combination with {@link #useValidToolTags}.
+     * </p>
+     * 
+     * @default true
+     * @see #validTools
+     * @see #useValidToolTags
+     */
+    public boolean useValidTools = true;
 
     /**
      * Whether tools should only take damage when harvesting mature crops.
