@@ -127,6 +127,7 @@ The mod works with:
 - Automatic config generation and validation
 - Dual tool validation system supports both tag-based and item-specific matching
 
+
 ## FAQ
 
 ### **Q: Does this work on servers?**
