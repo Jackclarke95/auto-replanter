@@ -2,6 +2,10 @@
 
 A Minecraft Fabric mod that automatically replants crops when harvested, eliminating the tedious task of manually replanting seeds after breaking crops.
 
+## Demo
+
+![Auto Replanter Showcase](Auto%20Replanter%20Showcase.gif)
+
 ## Features
 
 - **Automatic Crop Replanting**: Crops are instantly replanted at age 0 when broken
