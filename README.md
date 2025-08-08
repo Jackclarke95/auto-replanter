@@ -204,7 +204,6 @@ If you encounter any issues or have suggestions, please:
 2. Ensure the correct validation booleans (`useValidToolTags` and `useValidTools`) are enabled
 3. Verify your `sneakMode` setting is one of the valid options
 4. Report bugs on the [GitHub Issues](https://github.com/Jackclarke95/auto-replanter-1.21.1/issues) page
-5. Join the discussion on [CurseForge](your-curseforge-link-here)
 
 ---
 
