@@ -1,6 +1,8 @@
 package net.jackclarke95.autoreplanter;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
@@ -16,21 +18,24 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 
 public class AutoReplanter implements ModInitializer {
-	private static final TagKey<Item> KNIVES_TAG = TagKey.of(RegistryKeys.ITEM,
-			Identifier.of("farmersdelight", "tools/knives"));
-	private static final TagKey<Item> HOES_TAG = TagKey.of(RegistryKeys.ITEM,
-			Identifier.of("minecraft", "hoes"));
+	private AutoReplanterConfig config;
+	private Set<TagKey<Item>> validToolTags;
 
 	@Override
 	public void onInitialize() {
+		// Load configuration
+		config = ConfigManager.loadConfig();
+
+		// Convert string tags to TagKey objects
+		validToolTags = config.validToolTags.stream()
+				.map(this::parseTagString)
+				.collect(Collectors.toSet());
+
 		PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
-			if (world.isClient) {
+			if (world.isClient || !config.enableAutoReplanting) {
 				return true;
 			}
 
-			world = (ServerWorld) world;
-
-			ItemStack mainTool = player.getMainHandStack();
 			Block block = state.getBlock();
 
 			// Check if the block is a crop
@@ -38,10 +43,14 @@ public class AutoReplanter implements ModInitializer {
 				return true;
 			}
 
-			// Check if we're hitting a crop with a hoe or a knife
-			if (!isHoe(mainTool) && !isKnife(mainTool)) {
+			ItemStack mainTool = player.getMainHandStack();
+
+			// Check if we need a valid tool and if so, whether we have one
+			if (config.requireTool && !isValidTool(mainTool)) {
 				return true;
 			}
+
+			world = (ServerWorld) world;
 
 			// Only drop loot if the crop is mature
 			if (isMatureCrop(cropBlock, state)) {
@@ -72,8 +81,8 @@ public class AutoReplanter implements ModInitializer {
 			// Replant the crop at age 0 (regardless of maturity)
 			world.setBlockState(pos, cropBlock.withAge(0), 3);
 
-			// Damage the tool by 1 durability point
-			if (mainTool.isDamageable()) {
+			// Only damage tools if tool requirement is enabled and we have a valid tool
+			if (config.damageTools && config.requireTool && mainTool.isDamageable() && isValidTool(mainTool)) {
 				mainTool.damage(1, player, EquipmentSlot.MAINHAND);
 			}
 
@@ -85,11 +94,20 @@ public class AutoReplanter implements ModInitializer {
 		return cropBlock.getAge(state) == cropBlock.getMaxAge();
 	}
 
-	private boolean isKnife(ItemStack tool) {
-		return tool.isIn(KNIVES_TAG);
+	private boolean isValidTool(ItemStack tool) {
+		return validToolTags.stream().anyMatch(tool::isIn);
 	}
 
-	private boolean isHoe(ItemStack tool) {
-		return tool.isIn(HOES_TAG);
+	private TagKey<Item> parseTagString(String tagString) {
+		String[] parts = tagString.split(":");
+		if (parts.length == 2) {
+			return TagKey.of(RegistryKeys.ITEM, Identifier.of(parts[0], parts[1]));
+		} else {
+			// Handle tags with more colons (e.g., "namespace:category/subcategory")
+			int firstColon = tagString.indexOf(':');
+			String namespace = tagString.substring(0, firstColon);
+			String path = tagString.substring(firstColon + 1);
+			return TagKey.of(RegistryKeys.ITEM, Identifier.of(namespace, path));
+		}
 	}
 }
