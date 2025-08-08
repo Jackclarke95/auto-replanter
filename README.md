@@ -163,7 +163,7 @@ This project is licensed under the Creative Commons Licence - see the [LICENCE](
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request on [GitHub](your-github-link-here).
+Contributions are welcome! Please feel free to submit a Pull Request on [GitHub](https://github.com/Jackclarke95/auto-replanter-1.21.1).
 
 ## Support
 
@@ -171,7 +171,7 @@ If you encounter any issues or have suggestions, please:
 
 1. Check the configuration file for proper setup
 2. Ensure the correct validation booleans (`useValidToolTags` and `useValidTools`) are enabled
-3. Report bugs on the [GitHub Issues](your-github-link-here) page
+3. Report bugs on the [GitHub Issues](https://github.com/Jackclarke95/auto-replanter-1.21.1/issues) page
 4. Join the discussion on [CurseForge](your-curseforge-link-here)
 
 ---
