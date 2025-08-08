@@ -44,30 +44,33 @@ public class AutoReplanter implements ModInitializer {
 			if (block instanceof CropBlock cropBlock && isKnife(mainTool)) {
 				player.sendMessage(Text.literal("Auto-replanting crop..."), false);
 
-				// Get the dropped stacks manually
-				List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
-						player,
-						mainTool);
+				// Only drop loot if the crop is mature
+				if (isMatureCrop(cropBlock, state)) {
+					// Get the dropped stacks manually
+					List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
+							player,
+							mainTool);
 
-				// Get the seed item for this crop
-				Item seedItem = cropBlock.asItem();
+					// Get the seed item for this crop
+					Item seedItem = cropBlock.asItem();
 
-				// Process each dropped stack
-				for (ItemStack stack : droppedStacks) {
-					if (stack.getItem() == seedItem && stack.getCount() > 1) {
-						// Decrement by 1 if it's the seed and there's more than 1
-						stack.decrement(1);
-					}
+					// Process each dropped stack
+					for (ItemStack stack : droppedStacks) {
+						if (stack.getItem() == seedItem && stack.getCount() > 1) {
+							// Decrement by 1 if it's the seed and there's more than 1
+							stack.decrement(1);
+						}
 
-					// Spawn the modified stack if it's not empty
-					if (!stack.isEmpty()) {
-						ItemEntity itemEntity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5,
-								pos.getZ() + 0.5, stack);
-						world.spawnEntity(itemEntity);
+						// Spawn the modified stack if it's not empty
+						if (!stack.isEmpty()) {
+							ItemEntity itemEntity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5,
+									pos.getZ() + 0.5, stack);
+							world.spawnEntity(itemEntity);
+						}
 					}
 				}
 
-				// Replant the crop at age 0
+				// Replant the crop at age 0 (regardless of maturity)
 				world.setBlockState(pos, cropBlock.withAge(0), 3);
 
 				return false; // Cancel the default break
