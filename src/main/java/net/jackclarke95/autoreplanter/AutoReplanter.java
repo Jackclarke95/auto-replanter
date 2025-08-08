@@ -13,11 +13,12 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
-import net.minecraft.text.Text;
 
 public class AutoReplanter implements ModInitializer {
 	private static final TagKey<Item> KNIVES_TAG = TagKey.of(RegistryKeys.ITEM,
 			Identifier.of("farmersdelight", "tools/knives"));
+	private static final TagKey<Item> HOES_TAG = TagKey.of(RegistryKeys.ITEM,
+			Identifier.of("minecraft", "hoes"));
 
 	@Override
 	public void onInitialize() {
@@ -31,41 +32,46 @@ public class AutoReplanter implements ModInitializer {
 			ItemStack mainTool = player.getMainHandStack();
 			Block block = state.getBlock();
 
-			// Check if we're hitting a crop with a knife
-			if (block instanceof CropBlock cropBlock && isKnife(mainTool)) {
-				// Only drop loot if the crop is mature
-				if (isMatureCrop(cropBlock, state)) {
-					// Get the dropped stacks manually
-					List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
-							player,
-							mainTool);
-
-					// Get the seed item for this crop
-					Item seedItem = cropBlock.asItem();
-
-					// Process each dropped stack
-					for (ItemStack stack : droppedStacks) {
-						if (stack.getItem() == seedItem && stack.getCount() > 1) {
-							// Decrement by 1 if it's the seed and there's more than 1
-							stack.decrement(1);
-						}
-
-						// Spawn the modified stack if it's not empty
-						if (!stack.isEmpty()) {
-							ItemEntity itemEntity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5,
-									pos.getZ() + 0.5, stack);
-							world.spawnEntity(itemEntity);
-						}
-					}
-				}
-
-				// Replant the crop at age 0 (regardless of maturity)
-				world.setBlockState(pos, cropBlock.withAge(0), 3);
-
-				return false; // Cancel the default break
+			// Check if the block is a crop
+			if (!(block instanceof CropBlock cropBlock)) {
+				return true;
 			}
 
-			return true; // Allow normal breaking for non-knife tools
+			// Check if we're hitting a crop with a hoe or a knife
+			if (!isHoe(mainTool) && !isKnife(mainTool)) {
+				return true;
+			}
+
+			// Only drop loot if the crop is mature
+			if (isMatureCrop(cropBlock, state)) {
+				// Get the dropped stacks manually
+				List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
+						player,
+						mainTool);
+
+				// Get the seed item for this crop
+				Item seedItem = cropBlock.asItem();
+
+				// Process each dropped stack
+				for (ItemStack stack : droppedStacks) {
+					if (stack.getItem() == seedItem && stack.getCount() > 1) {
+						// Decrement by 1 if it's the seed and there's more than 1
+						stack.decrement(1);
+					}
+
+					// Spawn the modified stack if it's not empty
+					if (!stack.isEmpty()) {
+						ItemEntity itemEntity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5,
+								pos.getZ() + 0.5, stack);
+						world.spawnEntity(itemEntity);
+					}
+				}
+			}
+
+			// Replant the crop at age 0 (regardless of maturity)
+			world.setBlockState(pos, cropBlock.withAge(0), 3);
+
+			return false; // Cancel the default break
 		});
 	}
 
@@ -75,5 +81,9 @@ public class AutoReplanter implements ModInitializer {
 
 	private boolean isKnife(ItemStack tool) {
 		return tool.isIn(KNIVES_TAG);
+	}
+
+	private boolean isHoe(ItemStack tool) {
+		return tool.isIn(HOES_TAG);
 	}
 }
