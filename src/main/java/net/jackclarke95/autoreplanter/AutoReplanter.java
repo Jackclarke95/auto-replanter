@@ -29,16 +29,7 @@ public class AutoReplanter implements ModInitializer {
 			world = (ServerWorld) world;
 
 			ItemStack mainTool = player.getMainHandStack();
-			ItemStack selectedItem = player.getInventory().getMainHandStack();
-			ItemStack offHandTool = player.getOffHandStack();
-			ItemStack activeItem = player.getActiveItem();
 			Block block = state.getBlock();
-
-			player.sendMessage(Text.literal("Broken block: " + block.getName().getString()), false);
-			player.sendMessage(Text.literal("Selected item: " + selectedItem.getName().getString()), false);
-			player.sendMessage(Text.literal("Equipped tool: " + mainTool.getName().getString()), false);
-			player.sendMessage(Text.literal("Offhand tool: " + offHandTool.getName().getString()), false);
-			player.sendMessage(Text.literal("Active item: " + activeItem.getName().getString()), false);
 
 			// Check if we're hitting a crop with a knife
 			if (block instanceof CropBlock cropBlock && isKnife(mainTool)) {
