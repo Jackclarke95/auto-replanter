@@ -193,13 +193,26 @@ public class AutoReplanter implements ModInitializer {
 
 		// Check traditional valid tool criteria
 		boolean validByTag = config.useValidToolTags && validToolTags.stream().anyMatch(tool::isIn);
+
+		if (validByTag) {
+			return true;
+		}
+
 		boolean validByItem = config.useValidTools && validToolIds.contains(
 				net.minecraft.registry.Registries.ITEM.getId(tool.getItem()).toString());
+
+		if (validByItem) {
+			return true;
+		}
 
 		// Check if tool has Auto Replanter enchantment
 		boolean hasEnchantment = hasAutoReplanterEnchantment(tool);
 
-		return validByTag || validByItem || hasEnchantment;
+		if (hasEnchantment) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -214,10 +227,12 @@ public class AutoReplanter implements ModInitializer {
 			return false;
 		}
 
+		Identifier AUTO_REPLANT_ENCHANTMENT_ID = Identifier.of("autoreplanter", "auto_replanter");
+
 		// Check enchantments directly by looking through the enchantment map
 		return tool.getEnchantments().getEnchantments().stream()
 				.anyMatch(enchantment -> {
-					return enchantment.matchesId(Identifier.of("autoreplanter", "auto_replanter"));
+					return enchantment.matchesId(AUTO_REPLANT_ENCHANTMENT_ID);
 				});
 	}
 
