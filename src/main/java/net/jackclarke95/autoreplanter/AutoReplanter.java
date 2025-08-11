@@ -4,18 +4,25 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.jetbrains.annotations.Nullable;
+
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.CropBlock;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 
 /**
  * Main mod class for the Auto Replanter mod.
@@ -91,23 +98,8 @@ public class AutoReplanter implements ModInitializer {
 			}
 
 			// Check sneak requirements based on configured mode
-			boolean playerSneaking = player.isSneaking();
-
-			switch (config.getSneakMode()) {
-				case ONLY_SNEAKING:
-					if (!playerSneaking) {
-						return true;
-					}
-					break;
-				case ONLY_STANDING:
-					if (playerSneaking) {
-						return true;
-					}
-					break;
-				case ALWAYS:
-				default:
-					// No sneak restriction
-					break;
+			if (isValidSneakRequirements(player)) {
+				return true;
 			}
 
 			// Check if we need a valid tool and if so, whether we have one
@@ -119,47 +111,115 @@ public class AutoReplanter implements ModInitializer {
 
 			boolean isMature = isMatureCrop(cropBlock, state);
 
-			// Only drop loot if the crop is mature
-			if (isMature) {
-				// Get the dropped stacks manually
-				List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
-						player,
-						mainTool);
-
-				// Get the seed item for this crop
-				Item seedItem = cropBlock.asItem();
-
-				// Process each dropped stack
-				for (ItemStack stack : droppedStacks) {
-					if (stack.getItem() == seedItem && stack.getCount() > 1) {
-						// Decrement by 1 if it's the seed and there's more than 1
-						stack.decrement(1);
-					}
-
-					// Spawn the modified stack if it's not empty
-					if (!stack.isEmpty()) {
-						ItemEntity itemEntity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5,
-								pos.getZ() + 0.5, stack);
-						world.spawnEntity(itemEntity);
-					}
-				}
-			}
+			processReplanting(world, player, pos, state, blockEntity, cropBlock, mainTool, isMature);
 
 			// Replant the crop at age 0 (regardless of maturity)
 			world.setBlockState(pos, cropBlock.withAge(0), 3);
 
 			// Damage tools based on config settings
-			if (config.damageTools && config.requireTool && mainTool.isDamageable()
-					&& isValidTool(mainTool)) {
-				// Only damage if we should always damage, or if we only damage on mature crops
-				// and this is mature
-				if (!config.onlyDamageOnMatureCrop || isMature) {
-					mainTool.damage(1, player, EquipmentSlot.MAINHAND);
-				}
-			}
+			damageTool(player, mainTool, isMature);
 
 			return false; // Cancel the default break
 		});
+	}
+
+	/**
+	 * Checks if the player's current sneaking state matches the configured sneak
+	 * mode.
+	 * <p>
+	 * This determines whether auto-replanting should proceed based on whether the
+	 * player
+	 * is sneaking, standing, or if sneaking is ignored.
+	 * </p>
+	 *
+	 * @param player The player entity to check.
+	 * @return {@code true} if the player's sneak state matches the configuration,
+	 *         {@code false} otherwise.
+	 */
+	private boolean isValidSneakRequirements(PlayerEntity player) {
+		boolean playerSneaking = player.isSneaking();
+
+		switch (config.getSneakMode()) {
+			case ONLY_SNEAKING:
+				return playerSneaking;
+			case ONLY_STANDING:
+				return !playerSneaking;
+			case ALWAYS:
+			default:
+				// No sneak restriction
+				return true;
+		}
+	}
+
+	/**
+	 * Handles the logic for replanting crops and dropping modified loot when a crop
+	 * is broken.
+	 * <p>
+	 * If the crop is mature, this method drops the appropriate items (with one seed
+	 * removed for replanting)
+	 * and spawns them in the world.
+	 * </p>
+	 *
+	 * @param world       The world where the crop is being broken.
+	 * @param player      The player breaking the crop.
+	 * @param pos         The position of the crop block.
+	 * @param state       The block state of the crop.
+	 * @param blockEntity The block entity at the crop's position, if any.
+	 * @param cropBlock   The crop block being broken.
+	 * @param mainTool    The tool used to break the crop.
+	 * @param isMature    Whether the crop is fully grown.
+	 */
+	private void processReplanting(World world, PlayerEntity player, BlockPos pos, BlockState state,
+			@Nullable BlockEntity blockEntity, CropBlock cropBlock, ItemStack mainTool, boolean isMature) {
+		// Only drop loot if the crop is mature
+		if (isMature) {
+			// Get the dropped stacks manually
+			List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
+					player,
+					mainTool);
+
+			// Get the seed item for this crop
+			Item seedItem = cropBlock.asItem();
+
+			// Process each dropped stack
+			for (ItemStack stack : droppedStacks) {
+				if (stack.getItem() == seedItem && stack.getCount() > 1) {
+					// Decrement by 1 if it's the seed and there's more than 1
+					stack.decrement(1);
+				}
+
+				// Spawn the modified stack if it's not empty
+				if (!stack.isEmpty()) {
+					ItemEntity itemEntity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5,
+							pos.getZ() + 0.5, stack);
+					world.spawnEntity(itemEntity);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Damages the player's tool if appropriate, based on configuration and crop
+	 * maturity.
+	 * <p>
+	 * The tool is only damaged if tool damage is enabled, a tool is required, the
+	 * tool is damageable,
+	 * and the tool is valid. Damage may be restricted to only mature crops.
+	 * </p>
+	 *
+	 * @param player   The player using the tool.
+	 * @param mainTool The tool to potentially damage.
+	 * @param isMature Whether the crop was mature when broken.
+	 */
+	private void damageTool(PlayerEntity player, ItemStack mainTool, boolean isMature) {
+		if (config.damageTools && config.requireTool && mainTool.isDamageable()
+				&& isValidTool(mainTool)) {
+			// Only damage if we should always damage, or if we only damage on mature crops
+			// and this is mature
+			if (!config.onlyDamageOnMatureCrop || isMature) {
+				mainTool.damage(1, player, EquipmentSlot.MAINHAND);
+			}
+		}
 	}
 
 	/**
