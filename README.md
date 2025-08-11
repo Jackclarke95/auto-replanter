@@ -20,7 +20,7 @@ A Minecraft Fabric mod that automatically replants crops when harvested, elimina
 ## Installation
 
 1. Install [Fabric Loader](https://fabricmc.net/use/)
-2. Download the mod jar from [CurseForge](your-curseforge-link-here)
+2. Download the mod jar
 3. Place the jar file in your `mods` folder
 4. Launch the game
 
