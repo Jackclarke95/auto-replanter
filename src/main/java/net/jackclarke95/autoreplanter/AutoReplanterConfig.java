@@ -100,7 +100,7 @@ public class AutoReplanterConfig {
          * @see #validToolTags
          * @see #useValidTools
          */
-        public boolean useValidToolTags = true;
+        public boolean useValidToolTags = false;
 
         /**
          * Whether to use specific item-based tool validation.
