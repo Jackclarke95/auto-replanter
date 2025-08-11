@@ -89,6 +89,26 @@ This allows you to specify exact tools that should work with auto-replanting. **
 
 You can use both validation systems simultaneously by setting both `useValidToolTags` and `useValidTools` to `true`. In this case, a tool is considered valid if it matches **either** the tag-based criteria **or** the specific item criteria.
 
+## Auto Replanter Enchantment Support
+
+There is an additional, optional datapack to add enchantment support. If a tool has the **Auto Replanter Enchantment** (regardless of its type or whether it matches your configured tags or item lists), it will always be considered a valid tool for auto-replanting. This means you can enchant any tool with the Auto Replanter enchantment and it will work with the mod, even if it is not listed in `validToolTags` or `validTools`. The tools that can be enchanted are defined in the Auto Replanter Enchantment data pack.
+
+If this datapack is enabled, the mod will automatically detect it with no config required. To enforce the enchantmentand ignore any valid tools as defined using the config settings described above, simply set `useValidToolTags` and `useValidTools` to `false` in the config.
+
+The Auto Replanter Enchantment datapack is available [here](https://modrinth.com/project/auto-replanter-enchantment)
+
+**Note:**  
+
+The other configuration settings—such as `requireTool`, `sneakMode`, and tool durability—still apply.  
+
+- If `requireTool` is set to `false`, any tool (or even no tool) will work, regardless of enchantment.  
+
+- If `requireTool` is `true`, a tool with the Auto Replanter enchantment will always be valid, even if it doesn't match your tags or item lists.  
+
+- The sneak mode and tool damage settings are still respected.
+
+This allows for more flexibility: you can give the enchantment to custom tools, modded tools, or even vanilla tools not normally allowed by your config, and they will work seamlessly with auto-replanting.
+
 ## Usage Examples
 
 ### Default Behaviour
@@ -208,6 +228,6 @@ If you encounter any issues or have suggestions, please:
 ---
 
 **Author**: jackclarke95  
-**Version**: 1.1.0  
+**Version**: 1.2.0  
 **Minecraft**: 1.21.1  
 **Mod Loader**: Fabric
