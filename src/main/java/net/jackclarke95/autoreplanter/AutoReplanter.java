@@ -116,12 +116,7 @@ public class AutoReplanter implements ModInitializer {
 		}
 
 		PlayerBlockBreakEvents.BEFORE.register((world, player, position, state, blockEntity) -> {
-			if (world.isClient || !config.enableAutoReplanting) {
-				return true;
-			}
-
-			// Check sneak requirements based on configured mode
-			if (!isValidSneakRequirements(player)) {
+			if (world.isClient || !config.enableAutoReplanting || !isValidSneakRequirements(player)) {
 				return true;
 			}
 
@@ -133,33 +128,112 @@ public class AutoReplanter implements ModInitializer {
 
 			// Get the block ID string directly from the block being broken
 			String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
+			Block block = state.getBlock();
 
-			if (config.useCustomBlockReplacements && customReplacementMap.containsKey(blockId)) {
-				CustomBlockReplacementEntry entry = customReplacementMap.get(blockId);
+			// Early exit checks
+			boolean isCustomBlock = config.useCustomBlockReplacements && customReplacementMap.containsKey(blockId);
+			boolean isCropBlock = block instanceof CropBlock;
 
-				handleBlockBreaking(world, player, position, state, blockEntity, mainTool,
-						entry.replacementBlock.getDefaultState(), entry.replacementItem, entry.damageTool);
+			// If neither condition is met, allow normal block breaking
+			if (!isCustomBlock && !isCropBlock) {
+				return true;
+			}
+
+			// Handle crop replacement
+			if (isCropBlock) {
+				CropBlock cropBlock = (CropBlock) block;
+				handleCropReplacement(world, player, position, state, blockEntity, mainTool, cropBlock);
 
 				return false;
 			}
 
-			// Crop logic
-			Block block = state.getBlock();
-			if (!(block instanceof CropBlock cropBlock)) {
-				return true;
+			// Handle custom block replacement
+			if (isCustomBlock) {
+				handleCustomBlockReplacement(world, player, position, state, blockEntity, mainTool, blockId);
+
+				return false;
 			}
 
-			Item seedItem = cropBlock.asItem();
-
-			BlockState blockToReplant = cropBlock.withAge(0);
-
-			handleBlockBreaking(world, player, position, state, blockEntity, mainTool, blockToReplant, seedItem,
-					isMatureCrop(cropBlock, state));
-
-			return false; // Cancel the default break
+			return true;
 		});
 	}
 
+	/**
+	 * Handles the replacement logic specifically for crop blocks.
+	 * <p>
+	 * This method processes crop blocks by determining the appropriate seed item
+	 * and creating a new crop block state at age 0 for replanting. It delegates
+	 * the actual block breaking and replanting to {@link #handleBlockBreaking}.
+	 * </p>
+	 *
+	 * @param world       The world where the crop is being broken.
+	 * @param player      The player breaking the crop.
+	 * @param position    The position of the crop block.
+	 * @param state       The current block state of the crop.
+	 * @param blockEntity The block entity at the crop's position, if any.
+	 * @param mainTool    The tool used to break the crop.
+	 * @param cropBlock   The crop block instance being broken.
+	 */
+	private void handleCropReplacement(World world, PlayerEntity player, BlockPos position, BlockState state,
+			@Nullable BlockEntity blockEntity, ItemStack mainTool, CropBlock cropBlock) {
+		Item seedItem = cropBlock.asItem();
+
+		BlockState blockToReplant = cropBlock.withAge(0);
+
+		handleBlockBreaking(world, player, position, state, blockEntity, mainTool, blockToReplant, seedItem,
+				isMatureCrop(cropBlock, state));
+	}
+
+	/**
+	 * Handles the replacement logic for custom block replacements defined in the
+	 * configuration.
+	 * <p>
+	 * This method processes blocks that have custom replacement rules configured,
+	 * using the predefined replacement block and item from the custom replacement
+	 * map.
+	 * It delegates the actual block breaking and replanting to
+	 * {@link #handleBlockBreaking}.
+	 * </p>
+	 *
+	 * @param world       The world where the block is being broken.
+	 * @param player      The player breaking the block.
+	 * @param position    The position of the block.
+	 * @param state       The current block state.
+	 * @param blockEntity The block entity at the block's position, if any.
+	 * @param mainTool    The tool used to break the block.
+	 * @param blockId     The string identifier of the block being broken.
+	 */
+	private void handleCustomBlockReplacement(World world, PlayerEntity player, BlockPos position, BlockState state,
+			@Nullable BlockEntity blockEntity, ItemStack mainTool, String blockId) {
+		CustomBlockReplacementEntry entry = customReplacementMap.get(blockId);
+
+		handleBlockBreaking(world, player, position, state, blockEntity, mainTool,
+				entry.replacementBlock.getDefaultState(), entry.replacementItem, entry.damageTool);
+	}
+
+	/**
+	 * Handles the core block breaking, looting, and replanting logic.
+	 * <p>
+	 * This method is the central processing point for all auto-replanting
+	 * operations.
+	 * It processes the loot drops, replants the block with the specified
+	 * replacement,
+	 * and applies tool damage if configured. This method is used by both crop
+	 * replacement and custom block replacement handlers.
+	 * </p>
+	 *
+	 * @param world            The world where the block is being broken.
+	 * @param player           The player breaking the block.
+	 * @param position         The position of the block.
+	 * @param state            The current block state.
+	 * @param blockEntity      The block entity at the block's position, if any.
+	 * @param mainTool         The tool used to break the block.
+	 * @param blockToReplant   The block state to place after breaking.
+	 * @param itemToReplant    The item to decrement from drops (seed or
+	 *                         replacement).
+	 * @param shouldDamageTool Whether the tool should be damaged for this
+	 *                         operation.
+	 */
 	private void handleBlockBreaking(World world, PlayerEntity player, BlockPos position, BlockState state,
 			BlockEntity blockEntity, ItemStack mainTool, BlockState blockToReplant, Item itemToReplant,
 			boolean shouldDamageTool) {
@@ -249,18 +323,15 @@ public class AutoReplanter implements ModInitializer {
 	}
 
 	/**
-	 * Damages the player's tool if appropriate, based on configuration and crop
-	 * maturity.
+	 * Damages the player's tool if appropriate, based on configuration settings.
 	 * <p>
 	 * The tool is only damaged if tool damage is enabled, a tool is required, the
-	 * tool is damageable,
-	 * and the tool is valid. Damage may be restricted to only mature crops.
+	 * tool is damageable, and the tool is valid. The damage behavior respects the
+	 * configuration setting for only damaging on mature crops.
 	 * </p>
 	 *
-	 * @param player       The player using the tool.
-	 * @param mainTool     The tool to potentially damage.
-	 * @param shouldDamage Whether the break should trigger damage (e.g., only on
-	 *                     mature crops).
+	 * @param player   The player using the tool.
+	 * @param mainTool The tool to potentially damage.
 	 */
 	private void damageTool(PlayerEntity player, ItemStack mainTool) {
 		if (config.damageTools && config.requireTool && mainTool.isDamageable()

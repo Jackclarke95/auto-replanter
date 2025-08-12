@@ -40,7 +40,20 @@ The mod creates a configuration file at `config/autoreplanter.json` on first run
   "useValidToolTags": true,
   "useValidTools": false,
   "onlyDamageOnMatureCrop": true,
-  "sneakMode": "ALWAYS"
+  "sneakMode": "ALWAYS",
+  "customBlockReplacements": [
+    {
+      "target": "farmersdelight:brown_mushroom_colony",
+      "replacement": "minecraft:brown_mushroom",
+      "damageTool": true
+    },
+    {
+      "target": "farmersdelight:red_mushroom_colony",
+      "replacement": "minecraft:red_mushroom",
+      "damageTool": true
+    }
+  ],
+  "useCustomBlockReplacements": true
 }
 ```
 
@@ -55,39 +68,64 @@ The mod creates a configuration file at `config/autoreplanter.json` on first run
 | `useValidTools` | Boolean | `false` | Whether to use specific item-based tool validation. When `false`, the `validTools` list is ignored |
 | `onlyDamageOnMatureCrop` | Boolean | `true` | Whether tools should only take damage when harvesting mature crops |
 | `sneakMode` | String | `"ALWAYS"` | Controls when auto-replanting occurs based on sneak state. Options: `"ALWAYS"`, `"ONLY_SNEAKING"`, `"ONLY_STANDING"` |
+| `customBlockReplacements` | Array | See below | List of custom block replacement rules for non-crop blocks |
+| `useCustomBlockReplacements` | Boolean | `true` | Whether to enable custom block replacement functionality |
 
-### Sneak Mode Options
+### Custom Block Replacements
 
-The `sneakMode` setting controls when auto-replanting should occur based on whether the player is sneaking:
+The mod supports custom block replacement rules that allow you to automatically replace non-crop blocks with other blocks when broken. This is useful for blocks like mushroom colonies that should replant a mushroom when harvested.
 
-- **`"ALWAYS"`** (default): Auto-replanting works regardless of sneak state
-- **`"ONLY_SNEAKING"`**: Auto-replanting only works while the player is sneaking
-- **`"ONLY_STANDING"`**: Auto-replanting only works while the player is NOT sneaking
+Each custom block replacement rule has the following structure:
 
-### Tool Validation Systems
+```json
+{
+  "target": "farmersdelight:brown_mushroom_colony",
+  "replacement": "minecraft:brown_mushroom", 
+  "damageTool": true
+}
+```
 
-The mod offers two complementary tool validation systems that can be used independently or together:
+| Property | Type | Description |
+|----------|------|-------------|
+| `target` | String | The block ID to be replaced (what you're breaking) |
+| `replacement` | String | The block ID to place after breaking |
+| `damageTool` | Boolean | Whether breaking this specific block should damage your tool |
 
-#### Tag-Based Validation (`validToolTags`)
+**Example Configuration:**
 
-The `validToolTags` option accepts item tags in the following formats:
+```json
+"customBlockReplacements": [
+  {
+    "target": "farmersdelight:brown_mushroom_colony",
+    "replacement": "minecraft:brown_mushroom",
+    "damageTool": true
+  },
+  {
+    "target": "farmersdelight:red_mushroom_colony", 
+    "replacement": "minecraft:red_mushroom",
+    "damageTool": false
+  },
+  {
+    "target": "modname:custom_flower",
+    "replacement": "minecraft:poppy",
+    "damageTool": true
+  }
+]
+```
 
-- Simple tags: `"minecraft:hoes"`
-- Category tags: `"farmersdelight:tools/knives"`
+**How It Works:**
 
-You can add tags from any mod to customise which tools trigger auto-replanting. **This list only takes effect when `useValidToolTags` is set to `true`.**
+- When you break a `farmersdelight:brown_mushroom_colony` with a valid tool, it will automatically place a `minecraft:brown_mushroom` in its place
+- The original block's drops are spawned, minus one of the replacement item (to simulate using it for replanting)
+- Tool damage is applied based on the `damageTool` setting for each rule
+- All other configuration options (tool requirements, sneak mode, etc.) still apply
 
-#### Specific Item Validation (`validTools`)
+**Notes:**
 
-The `validTools` option accepts specific item IDs in the format:
-
-- `"namespace:item_id"` (e.g., `"minecraft:diamond_hoe"`, `"farmersdelight:flint_knife"`)
-
-This allows you to specify exact tools that should work with auto-replanting. **This list only takes effect when `useValidTools` is set to `true`.**
-
-#### Combining Both Systems
-
-You can use both validation systems simultaneously by setting both `useValidToolTags` and `useValidTools` to `true`. In this case, a tool is considered valid if it matches **either** the tag-based criteria **or** the specific item criteria.
+- Custom block replacements work independently of crop blocks
+- The `useCustomBlockReplacements` setting must be `true` for this feature to work
+- Block IDs must be valid and exist in your game (including mod blocks)
+- If the replacement block ID is invalid, that rule will be ignored
 
 ## Auto Replanter Enchantment Support
 
@@ -95,7 +133,7 @@ There is an additional, optional datapack to add enchantment support. If a tool 
 
 If this datapack is enabled, the mod will automatically detect it with no config required. To enforce the enchantmentand ignore any valid tools as defined using the config settings described above, simply set `useValidToolTags` and `useValidTools` to `false` in the config.
 
-The Auto Replanter Enchantment datapack is available [here](https://modrinth.com/project/auto-replanter-enchantment)
+The Auto Replanter Enchantment datapack is available on [Modrinth](https://modrinth.com/project/auto-replanter-enchantment)
 
 **Note:**  
 
@@ -146,6 +184,22 @@ Set `"damageTools": false` to prevent tools from taking any durability damage.
 ### Only Damage on Harvest
 
 Set `"onlyDamageOnMatureCrop": true` (default) to only damage tools when actually harvesting mature crops, not when replanting immature ones. This saves needless tool durability loss when accidentally breaking crops that are not fully grown when they are automatically replanted.
+
+### Custom Block Harvesting
+
+Use custom block replacements to automatically replant modded blocks like mushroom colonies:
+
+```json
+"customBlockReplacements": [
+  {
+    "target": "farmersdelight:brown_mushroom_colony",
+    "replacement": "minecraft:brown_mushroom",
+    "damageTool": true
+  }
+]
+```
+
+Using the default values, when you break a brown mushroom colony from Farmer's Delight (having met the valid criteria to trigger automatic replanting), it will automatically place a brown mushroom and drop the colony's normal loot (minus one brown mushroom used for replanting).
 
 ## Supported Crops
 
@@ -207,6 +261,18 @@ A: `"ALWAYS"` works regardless of sneaking, `"ONLY_SNEAKING"` only works while s
 ### **Q: Can I set an invalid sneak mode?**
 
 A: If you set an invalid sneak mode in the config, the mod will fall back to `"ALWAYS"` behavior.
+
+### **Q: Can I use custom block replacements with any modded blocks?**
+
+A: Yes, as long as you specify valid block IDs for both the target and replacement blocks. The blocks must exist in your game for the replacement to work.
+
+### **Q: Do custom block replacements work with crops?**
+
+A: Custom block replacements are designed for non-crop blocks. Regular crops are handled by the mod's built-in crop replanting system. If a crop block is also defined in the custom block replacement config, crop breaking logic will take precedence.
+
+### **Q: Can I disable tool damage for specific custom blocks?**
+
+A: Yes! Set `"damageTool": false` in the custom block replacement rule to prevent tool damage for that specific block. Note that crop blocks take precedence over custom blocks, so if a crop block is defined in the custom blocks, its `damageTool` value will be ignored in favour of the crop block logic.
 
 ## Licence
 
