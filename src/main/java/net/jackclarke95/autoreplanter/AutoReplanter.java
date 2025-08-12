@@ -26,7 +26,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.text.Text;
 
 /**
  * Main mod class for the Auto Replanter mod.
@@ -113,9 +112,6 @@ public class AutoReplanter implements ModInitializer {
 			// Get the block ID string directly from the block being broken
 			String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
 
-			// Log for debugging
-			player.sendMessage(Text.literal("Broken block: " + blockId), false);
-
 			// Check sneak requirements based on configured mode
 			if (!isValidSneakRequirements(player)) {
 				return true;
@@ -130,17 +126,9 @@ public class AutoReplanter implements ModInitializer {
 			if (customReplacementMap.containsKey(blockId)) {
 				Block replacement = customReplacementMap.get(blockId);
 
-				// Drop the block's loot as normal
-				List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
-						player, mainTool);
+				Item replacementItem = replacement.asItem();
 
-				for (ItemStack stack : droppedStacks) {
-					if (!stack.isEmpty()) {
-						ItemEntity itemEntity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5,
-								pos.getZ() + 0.5, stack);
-						world.spawnEntity(itemEntity);
-					}
-				}
+				dropDecrementedLoot(world, pos, replacementItem, state, blockEntity, player, mainTool);
 
 				// Replace with the configured block
 				world.setBlockState(pos, replacement.getDefaultState(), 3);
@@ -221,27 +209,34 @@ public class AutoReplanter implements ModInitializer {
 			@Nullable BlockEntity blockEntity, CropBlock cropBlock, ItemStack mainTool, boolean isMature) {
 		// Only drop loot if the crop is mature
 		if (isMature) {
-			// Get the dropped stacks manually
-			List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
-					player,
-					mainTool);
 
 			// Get the seed item for this crop
 			Item seedItem = cropBlock.asItem();
 
-			// Process each dropped stack
-			for (ItemStack stack : droppedStacks) {
-				if (stack.getItem() == seedItem && stack.getCount() > 1) {
-					// Decrement by 1 if it's the seed and there's more than 1
-					stack.decrement(1);
-				}
+			dropDecrementedLoot(world, pos, seedItem, state, blockEntity, player, mainTool);
+		}
+	}
 
-				// Spawn the modified stack if it's not empty
-				if (!stack.isEmpty()) {
-					ItemEntity itemEntity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5,
-							pos.getZ() + 0.5, stack);
-					world.spawnEntity(itemEntity);
-				}
+	private void dropDecrementedLoot(World world, BlockPos pos, Item itemToDecrement, BlockState state,
+			@Nullable BlockEntity blockEntity, PlayerEntity player, ItemStack mainTool) {
+		// Get the dropped stacks manually
+		List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
+				player,
+				mainTool);
+
+		// Process each dropped stack
+		for (ItemStack stack : droppedStacks) {
+
+			if (stack.getItem() == itemToDecrement && stack.getCount() > 1) {
+				// Decrement by 1 if it's the seed and there's more than 1
+				stack.decrement(1);
+			}
+
+			// Spawn the modified stack if it's not empty
+			if (!stack.isEmpty()) {
+				ItemEntity itemEntity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5,
+						pos.getZ() + 0.5, stack);
+				world.spawnEntity(itemEntity);
 			}
 		}
 	}
