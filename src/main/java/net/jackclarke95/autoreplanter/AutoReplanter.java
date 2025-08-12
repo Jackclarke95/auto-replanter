@@ -1,6 +1,8 @@
 package net.jackclarke95.autoreplanter;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -18,11 +20,13 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.text.Text;
 
 /**
  * Main mod class for the Auto Replanter mod.
@@ -59,6 +63,9 @@ public class AutoReplanter implements ModInitializer {
 	/** Set of tool ID strings that are considered valid for auto-replanting. */
 	private Set<String> validToolIds;
 
+	// When building the map
+	private Map<String, Block> customReplacementMap;
+
 	/**
 	 * Initializes the Auto Replanter mod.
 	 * <p>
@@ -85,33 +92,74 @@ public class AutoReplanter implements ModInitializer {
 		// Store valid tool IDs as strings for direct comparison
 		validToolIds = Set.copyOf(config.validTools);
 
+		// Build custom replacement map
+		customReplacementMap = new HashMap<>();
+
+		for (AutoReplanterConfig.CustomBlockReplacement rule : config.customBlockReplacements) {
+			Block replacement = Registries.BLOCK.get(Identifier.of(rule.replacement));
+
+			for (String targetId : rule.targets) {
+				if (replacement != null) {
+					customReplacementMap.put(targetId, replacement);
+				}
+			}
+		}
+
 		PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
 			if (world.isClient || !config.enableAutoReplanting) {
 				return true;
 			}
 
-			Block block = state.getBlock();
+			// Get the block ID string directly from the block being broken
+			String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
 
-			// Check if the block is a crop
-			if (!(block instanceof CropBlock cropBlock)) {
-				return true;
-			}
+			// Log for debugging
+			player.sendMessage(Text.literal("Broken block: " + blockId), false);
 
 			// Check sneak requirements based on configured mode
-			if (isValidSneakRequirements(player)) {
+			if (!isValidSneakRequirements(player)) {
 				return true;
 			}
 
-			// Check if we need a valid tool and if so, whether we have one
 			ItemStack mainTool = player.getMainHandStack();
-
 			if (config.requireTool && !isValidTool(mainTool)) {
+				return true;
+			}
+
+			// Directly compare blockId string to config keys
+			if (customReplacementMap.containsKey(blockId)) {
+				Block replacement = customReplacementMap.get(blockId);
+
+				// Drop the block's loot as normal
+				List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
+						player, mainTool);
+
+				for (ItemStack stack : droppedStacks) {
+					if (!stack.isEmpty()) {
+						ItemEntity itemEntity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5,
+								pos.getZ() + 0.5, stack);
+						world.spawnEntity(itemEntity);
+					}
+				}
+
+				// Replace with the configured block
+				world.setBlockState(pos, replacement.getDefaultState(), 3);
+
+				// Optionally damage tool (always, since "maturity" doesn't apply)
+				damageTool(player, mainTool, true);
+
+				return false;
+			}
+
+			// Crop logic
+			Block block = state.getBlock();
+			if (!(block instanceof CropBlock cropBlock)) {
 				return true;
 			}
 
 			boolean isMature = isMatureCrop(cropBlock, state);
 
-			processReplanting(world, player, pos, state, blockEntity, cropBlock, mainTool, isMature);
+			processLoot(world, player, pos, state, blockEntity, cropBlock, mainTool, isMature);
 
 			// Replant the crop at age 0 (regardless of maturity)
 			world.setBlockState(pos, cropBlock.withAge(0), 3);
@@ -152,7 +200,7 @@ public class AutoReplanter implements ModInitializer {
 	}
 
 	/**
-	 * Handles the logic for replanting crops and dropping modified loot when a crop
+	 * Handles the logic for dropping modified loot when a crop
 	 * is broken.
 	 * <p>
 	 * If the crop is mature, this method drops the appropriate items (with one seed
@@ -169,7 +217,7 @@ public class AutoReplanter implements ModInitializer {
 	 * @param mainTool    The tool used to break the crop.
 	 * @param isMature    Whether the crop is fully grown.
 	 */
-	private void processReplanting(World world, PlayerEntity player, BlockPos pos, BlockState state,
+	private void processLoot(World world, PlayerEntity player, BlockPos pos, BlockState state,
 			@Nullable BlockEntity blockEntity, CropBlock cropBlock, ItemStack mainTool, boolean isMature) {
 		// Only drop loot if the crop is mature
 		if (isMature) {
@@ -207,16 +255,16 @@ public class AutoReplanter implements ModInitializer {
 	 * and the tool is valid. Damage may be restricted to only mature crops.
 	 * </p>
 	 *
-	 * @param player   The player using the tool.
-	 * @param mainTool The tool to potentially damage.
-	 * @param isMature Whether the crop was mature when broken.
+	 * @param player       The player using the tool.
+	 * @param mainTool     The tool to potentially damage.
+	 * @param shouldDamage Whether the break should trigger damage.
 	 */
-	private void damageTool(PlayerEntity player, ItemStack mainTool, boolean isMature) {
+	private void damageTool(PlayerEntity player, ItemStack mainTool, boolean shouldDamage) {
 		if (config.damageTools && config.requireTool && mainTool.isDamageable()
 				&& isValidTool(mainTool)) {
 			// Only damage if we should always damage, or if we only damage on mature crops
 			// and this is mature
-			if (!config.onlyDamageOnMatureCrop || isMature) {
+			if (!config.onlyDamageOnMatureCrop || shouldDamage) {
 				mainTool.damage(1, player, EquipmentSlot.MAINHAND);
 			}
 		}

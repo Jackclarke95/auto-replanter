@@ -159,4 +159,45 @@ public class AutoReplanterConfig {
         public SneakMode getSneakMode() {
                 return sneakMode != null ? sneakMode : SneakMode.ALWAYS;
         }
+
+        /**
+         * List of custom block replacement rules.
+         * Each entry is a pair: the first element is a list of target block IDs,
+         * the second is the replacement block ID.
+         * Example:
+         * [
+         * { "targets": ["minecraft:brown_mushroom",
+         * "farmersdelight:brown_mushroom_colony"], "replacement":
+         * "minecraft:brown_mushroom" },
+         * { "targets": ["minecraft:red_mushroom",
+         * "farmersdelight:red_mushroom_colony"], "replacement":
+         * "minecraft:red_mushroom" }
+         * ]
+         */
+        public List<CustomBlockReplacement> customBlockReplacements = List.of(
+                        new CustomBlockReplacement(
+                                        List.of("minecraft:brown_mushroom", "farmersdelight:brown_mushroom_colony"),
+                                        "minecraft:brown_mushroom"),
+                        new CustomBlockReplacement(
+                                        List.of("minecraft:red_mushroom", "farmersdelight:red_mushroom_colony"),
+                                        "minecraft:red_mushroom"));
+
+        /**
+         * Represents a custom block replacement rule.
+         */
+        public static class CustomBlockReplacement {
+                public List<String> targets;
+                public String replacement;
+
+                /**
+                 * Constructs a custom block replacement rule.
+                 * 
+                 * @param targets     The list of target block IDs to replace.
+                 * @param replacement The ID of the block to replace with.
+                 */
+                public CustomBlockReplacement(List<String> targets, String replacement) {
+                        this.targets = targets;
+                        this.replacement = replacement;
+                }
+        }
 }

@@ -16,6 +16,7 @@ A Minecraft Fabric mod that automatically replants crops when harvested, elimina
 - **Sneak Mode Control**: Configure auto-replanting to work always, only while sneaking, or only while standing
 - **Highly Configurable**: Extensive configuration options to customise behaviour
 - **Mod Compatibility**: Works with any modded crops that extend Minecraft's `CropBlock`
+- **Companion Enchantment**: Optional companion [enchantment](https://modrinth.com/datapack/auto-replanter-enchantment) available for adding auto replanting as an enchantment
 
 ## Installation
 
