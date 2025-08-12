@@ -13,6 +13,7 @@
 - Pull requests require approval before merging
 - Ensure your code follows the existing style
 - Update documentation as needed
+- Update the mod version number in `gradle.properties`
 
 ## Code Review
 
