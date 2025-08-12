@@ -129,7 +129,7 @@ public class AutoReplanter implements ModInitializer {
 
 				Item replacementItem = replacement.asItem();
 
-				processLoot(world, player, pos, state, blockEntity, replacementItem, mainTool, true);
+				processLoot(world, player, pos, state, blockEntity, replacementItem, mainTool);
 
 				// Replace with the configured block
 				world.setBlockState(pos, replacement.getDefaultState(), 3);
@@ -146,17 +146,15 @@ public class AutoReplanter implements ModInitializer {
 				return true;
 			}
 
-			boolean isMature = isMatureCrop(cropBlock, state);
-
 			Item seedItem = cropBlock.asItem();
 
-			processLoot(world, player, pos, state, blockEntity, seedItem, mainTool, isMature);
+			processLoot(world, player, pos, state, blockEntity, seedItem, mainTool);
 
 			// Replant the crop at age 0 (regardless of maturity)
 			world.setBlockState(pos, cropBlock.withAge(0), 3);
 
 			// Damage tools based on config settings
-			damageTool(player, mainTool, isMature);
+			damageTool(player, mainTool, isMatureCrop(cropBlock, state));
 
 			return false; // Cancel the default break
 		});
@@ -166,9 +164,9 @@ public class AutoReplanter implements ModInitializer {
 	 * Checks if the player's current sneaking state matches the configured sneak
 	 * mode.
 	 * <p>
-	 * This determines whether auto-replanting should proceed based on whether the
-	 * player
-	 * is sneaking, standing, or if sneaking is ignored.
+	 * Determines whether auto-replanting should proceed based on the player's
+	 * sneaking state
+	 * and the mod's configured sneak mode (ALWAYS, ONLY_SNEAKING, ONLY_STANDING).
 	 * </p>
 	 *
 	 * @param player The player entity to check.
@@ -191,32 +189,26 @@ public class AutoReplanter implements ModInitializer {
 	}
 
 	/**
-	 * Handles the logic for dropping modified loot when a crop
-	 * is broken.
+	 * Handles the logic for dropping modified loot when a block is broken and
+	 * auto-replanting is triggered.
 	 * <p>
-	 * If the crop is mature, this method drops the appropriate items (with one seed
-	 * removed for replanting)
-	 * and spawns them in the world.
+	 * This method collects the dropped item stacks for the given block state and
+	 * decrements one item from the stack matching {@code itemToDecrement}
+	 * (typically the seed or replacement item) to simulate using it for replanting.
+	 * The modified drops are then spawned in the world.
 	 * </p>
 	 *
-	 * @param world          The world where the crop is being broken.
-	 * @param player         The player breaking the crop.
-	 * @param pos            The position of the crop block.
-	 * @param state          The block state of the crop.
-	 * @param blockEntity    The block entity at the crop's position, if any.
-	 * @param cropBlock      The crop block being broken.
-	 * @param mainTool       The tool used to break the crop.
-	 * @param shouldDropLoot Whether the crop is fully grown.
+	 * @param world           The world where the block is being broken.
+	 * @param player          The player breaking the block.
+	 * @param pos             The position of the block.
+	 * @param state           The block state of the block being broken.
+	 * @param blockEntity     The block entity at the block's position, if any.
+	 * @param itemToDecrement The item to decrement from the drops (seed or
+	 *                        replacement).
+	 * @param mainTool        The tool used to break the block.
 	 */
 	private void processLoot(World world, PlayerEntity player, BlockPos pos, BlockState state,
-			@Nullable BlockEntity blockEntity, Item itemToDecrement, ItemStack mainTool, boolean shouldDropLoot) {
-		// Only drop loot if the crop is mature
-
-		dropDecrementedLoot(world, pos, itemToDecrement, state, blockEntity, player, mainTool);
-	}
-
-	private void dropDecrementedLoot(World world, BlockPos pos, Item itemToDecrement, BlockState state,
-			@Nullable BlockEntity blockEntity, PlayerEntity player, ItemStack mainTool) {
+			@Nullable BlockEntity blockEntity, Item itemToDecrement, ItemStack mainTool) {
 		// Get the dropped stacks manually
 		List<ItemStack> droppedStacks = Block.getDroppedStacks(state, (ServerWorld) world, pos, blockEntity,
 				player,
@@ -234,6 +226,7 @@ public class AutoReplanter implements ModInitializer {
 			if (!stack.isEmpty()) {
 				ItemEntity itemEntity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5,
 						pos.getZ() + 0.5, stack);
+
 				world.spawnEntity(itemEntity);
 			}
 		}
@@ -250,7 +243,8 @@ public class AutoReplanter implements ModInitializer {
 	 *
 	 * @param player       The player using the tool.
 	 * @param mainTool     The tool to potentially damage.
-	 * @param shouldDamage Whether the break should trigger damage.
+	 * @param shouldDamage Whether the break should trigger damage (e.g., only on
+	 *                     mature crops).
 	 */
 	private void damageTool(PlayerEntity player, ItemStack mainTool, boolean shouldDamage) {
 		if (config.damageTools && config.requireTool && mainTool.isDamageable()
@@ -265,10 +259,10 @@ public class AutoReplanter implements ModInitializer {
 
 	/**
 	 * Determines if a crop is fully mature and ready for harvest.
-	 * 
-	 * @param cropBlock the crop block to check
-	 * @param state     the current block state of the crop
-	 * @return {@code true} if the crop is at maximum age, {@code false} otherwise
+	 *
+	 * @param cropBlock The crop block to check.
+	 * @param state     The current block state of the crop.
+	 * @return {@code true} if the crop is at maximum age, {@code false} otherwise.
 	 */
 	private boolean isMatureCrop(CropBlock cropBlock, net.minecraft.block.BlockState state) {
 		return cropBlock.getAge(state) == cropBlock.getMaxAge();
@@ -276,16 +270,13 @@ public class AutoReplanter implements ModInitializer {
 
 	/**
 	 * Checks if the given tool is valid for auto-replanting based on configured
-	 * tool validation settings or if it has the Auto Replanter enchantment.
-	 * 
-	 * @param tool the ItemStack representing the tool to check
+	 * tool validation settings
+	 * or if it has the Auto Replanter enchantment.
+	 *
+	 * @param tool The ItemStack representing the tool to check.
 	 * @return {@code true} if the tool matches any of the configured validation
 	 *         criteria or has the Auto Replanter enchantment,
-	 *         {@code false} otherwise
-	 * @see AutoReplanterConfig#validToolTags
-	 * @see AutoReplanterConfig#validTools
-	 * @see AutoReplanterConfig#useValidToolTags
-	 * @see AutoReplanterConfig#useValidTools
+	 *         {@code false} otherwise.
 	 */
 	private boolean isValidTool(ItemStack tool) {
 		if (tool.isEmpty()) {
@@ -318,10 +309,10 @@ public class AutoReplanter implements ModInitializer {
 
 	/**
 	 * Checks if the given tool has the Auto Replanter enchantment.
-	 * 
-	 * @param tool the ItemStack to check for the enchantment
+	 *
+	 * @param tool The ItemStack to check for the enchantment.
 	 * @return {@code true} if the tool has the Auto Replanter enchantment,
-	 *         {@code false} otherwise
+	 *         {@code false} otherwise.
 	 */
 	private boolean hasAutoReplanterEnchantment(ItemStack tool) {
 		if (tool.isEmpty()) {
@@ -340,14 +331,14 @@ public class AutoReplanter implements ModInitializer {
 	/**
 	 * Parses a string representation of an item tag into a TagKey object.
 	 * <p>
-	 * Supports both simple tags ("namespace:path") and complex tags with
-	 * categories ("namespace:category/subcategory").
+	 * Supports both simple tags ("namespace:path") and complex tags with categories
+	 * ("namespace:category/subcategory").
 	 * </p>
-	 * 
-	 * @param tagString the string representation of the tag (e.g., "minecraft:hoes"
-	 *                  or "farmersdelight:tools/knives")
-	 * @return a TagKey object representing the parsed tag
-	 * @throws IllegalArgumentException if the tag string format is invalid
+	 *
+	 * @param tagString The string representation of the tag (e.g., "minecraft:hoes"
+	 *                  or "farmersdelight:tools/knives").
+	 * @return A TagKey object representing the parsed tag.
+	 * @throws IllegalArgumentException if the tag string format is invalid.
 	 */
 	private TagKey<Item> parseTagString(String tagString) {
 		String[] parts = tagString.split(":");
