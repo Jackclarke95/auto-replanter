@@ -63,7 +63,20 @@ public class AutoReplanter implements ModInitializer {
 	private Set<String> validToolIds;
 
 	// When building the map
-	private Map<String, Block> customReplacementMap;
+	private Map<String, CustomBlockReplacementEntry> customReplacementMap;
+
+	// Helper class for fast lookup
+	private static class CustomBlockReplacementEntry {
+		public final Block replacementBlock;
+		public final Item replacementItem;
+		public final boolean damageTool;
+
+		public CustomBlockReplacementEntry(Block replacementBlock, Item replacementItem, boolean damageTool) {
+			this.replacementBlock = replacementBlock;
+			this.replacementItem = replacementItem;
+			this.damageTool = damageTool;
+		}
+	}
 
 	/**
 	 * Initializes the Auto Replanter mod.
@@ -91,20 +104,18 @@ public class AutoReplanter implements ModInitializer {
 		// Store valid tool IDs as strings for direct comparison
 		validToolIds = Set.copyOf(config.validTools);
 
-		// Build custom replacement map
+		// Build custom replacement map (target block ID -> entry)
 		customReplacementMap = new HashMap<>();
-
 		for (AutoReplanterConfig.CustomBlockReplacement rule : config.customBlockReplacements) {
 			Block replacement = Registries.BLOCK.get(Identifier.of(rule.replacement));
-
-			for (String targetId : rule.targets) {
-				if (replacement != null) {
-					customReplacementMap.put(targetId, replacement);
-				}
+			if (replacement != null) {
+				customReplacementMap.put(
+						rule.target,
+						new CustomBlockReplacementEntry(replacement, replacement.asItem(), rule.damageTool));
 			}
 		}
 
-		PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
+		PlayerBlockBreakEvents.BEFORE.register((world, player, position, state, blockEntity) -> {
 			if (world.isClient || !config.enableAutoReplanting) {
 				return true;
 			}
@@ -123,19 +134,11 @@ public class AutoReplanter implements ModInitializer {
 			// Get the block ID string directly from the block being broken
 			String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
 
-			// Directly compare blockId string to config keys
 			if (customReplacementMap.containsKey(blockId)) {
-				Block replacement = customReplacementMap.get(blockId);
+				CustomBlockReplacementEntry entry = customReplacementMap.get(blockId);
 
-				Item replacementItem = replacement.asItem();
-
-				processLoot(world, player, pos, state, blockEntity, replacementItem, mainTool);
-
-				// Replace with the configured block
-				world.setBlockState(pos, replacement.getDefaultState(), 3);
-
-				// Optionally damage tool (always, since "maturity" doesn't apply)
-				damageTool(player, mainTool, true);
+				handleBlockBreaking(world, player, position, state, blockEntity, mainTool,
+						entry.replacementBlock.getDefaultState(), entry.replacementItem, entry.damageTool);
 
 				return false;
 			}
@@ -148,16 +151,29 @@ public class AutoReplanter implements ModInitializer {
 
 			Item seedItem = cropBlock.asItem();
 
-			processLoot(world, player, pos, state, blockEntity, seedItem, mainTool);
+			BlockState blockToReplant = cropBlock.withAge(0);
 
-			// Replant the crop at age 0 (regardless of maturity)
-			world.setBlockState(pos, cropBlock.withAge(0), 3);
-
-			// Damage tools based on config settings
-			damageTool(player, mainTool, isMatureCrop(cropBlock, state));
+			handleBlockBreaking(world, player, position, state, blockEntity, mainTool, blockToReplant, seedItem,
+					isMatureCrop(cropBlock, state));
 
 			return false; // Cancel the default break
 		});
+	}
+
+	private void handleBlockBreaking(World world, PlayerEntity player, BlockPos position, BlockState state,
+			BlockEntity blockEntity, ItemStack mainTool, BlockState blockToReplant, Item itemToReplant,
+			boolean shouldDamageTool) {
+		// Handle looting including decrementing "seed" drop by 1 to simulate
+		// consumption of replanting
+		processLoot(world, player, position, state, blockEntity, itemToReplant, mainTool);
+
+		// Replant the crop at age 0 (regardless of maturity)
+		world.setBlockState(position, blockToReplant, 3);
+
+		// Damage tools based on config settings
+		if (shouldDamageTool) {
+			damageTool(player, mainTool);
+		}
 	}
 
 	/**
@@ -246,12 +262,12 @@ public class AutoReplanter implements ModInitializer {
 	 * @param shouldDamage Whether the break should trigger damage (e.g., only on
 	 *                     mature crops).
 	 */
-	private void damageTool(PlayerEntity player, ItemStack mainTool, boolean shouldDamage) {
+	private void damageTool(PlayerEntity player, ItemStack mainTool) {
 		if (config.damageTools && config.requireTool && mainTool.isDamageable()
 				&& isValidTool(mainTool)) {
 			// Only damage if we should always damage, or if we only damage on mature crops
 			// and this is mature
-			if (!config.onlyDamageOnMatureCrop || shouldDamage) {
+			if (!config.onlyDamageOnMatureCrop) {
 				mainTool.damage(1, player, EquipmentSlot.MAINHAND);
 			}
 		}

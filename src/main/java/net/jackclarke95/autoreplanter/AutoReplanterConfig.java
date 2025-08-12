@@ -162,42 +162,43 @@ public class AutoReplanterConfig {
 
         /**
          * List of custom block replacement rules.
-         * Each entry is a pair: the first element is a list of target block IDs,
-         * the second is the replacement block ID.
+         * Each entry is a mapping from a single target block ID to a replacement block
+         * ID, and whether breaking this block should cost tool durability.
+         * <p>
          * Example:
+         * </p>
          * [
-         * { "targets": ["minecraft:brown_mushroom",
-         * "farmersdelight:brown_mushroom_colony"], "replacement":
-         * "minecraft:brown_mushroom" },
-         * { "targets": ["minecraft:red_mushroom",
-         * "farmersdelight:red_mushroom_colony"], "replacement":
-         * "minecraft:red_mushroom" }
+         * { "target": "farmersdelight:brown_mushroom_colony", "replacement":
+         * "minecraft:brown_mushroom", "damageTool": true },
+         * { "target": "farmersdelight:red_mushroom_colony", "replacement":
+         * "minecraft:red_mushroom", "damageTool": false }
          * ]
          */
         public List<CustomBlockReplacement> customBlockReplacements = List.of(
-                        new CustomBlockReplacement(
-                                        List.of("minecraft:brown_mushroom", "farmersdelight:brown_mushroom_colony"),
-                                        "minecraft:brown_mushroom"),
-                        new CustomBlockReplacement(
-                                        List.of("minecraft:red_mushroom", "farmersdelight:red_mushroom_colony"),
-                                        "minecraft:red_mushroom"));
+                        new CustomBlockReplacement("farmersdelight:brown_mushroom_colony", "minecraft:brown_mushroom",
+                                        true),
+                        new CustomBlockReplacement("farmersdelight:red_mushroom_colony", "minecraft:red_mushroom",
+                                        true));
 
         /**
          * Represents a custom block replacement rule.
          */
         public static class CustomBlockReplacement {
-                public List<String> targets;
+                public String target;
                 public String replacement;
+                public boolean damageTool;
 
                 /**
                  * Constructs a custom block replacement rule.
                  * 
-                 * @param targets     The list of target block IDs to replace.
+                 * @param target      The target block ID to replace.
                  * @param replacement The ID of the block to replace with.
+                 * @param damageTool  Whether breaking this block should cost tool durability.
                  */
-                public CustomBlockReplacement(List<String> targets, String replacement) {
-                        this.targets = targets;
+                public CustomBlockReplacement(String target, String replacement, boolean damageTool) {
+                        this.target = target;
                         this.replacement = replacement;
+                        this.damageTool = damageTool;
                 }
         }
 }
