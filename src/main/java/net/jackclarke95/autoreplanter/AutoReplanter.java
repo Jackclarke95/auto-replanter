@@ -109,18 +109,19 @@ public class AutoReplanter implements ModInitializer {
 				return true;
 			}
 
-			// Get the block ID string directly from the block being broken
-			String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
-
 			// Check sneak requirements based on configured mode
 			if (!isValidSneakRequirements(player)) {
 				return true;
 			}
 
 			ItemStack mainTool = player.getMainHandStack();
+
 			if (config.requireTool && !isValidTool(mainTool)) {
 				return true;
 			}
+
+			// Get the block ID string directly from the block being broken
+			String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
 
 			// Directly compare blockId string to config keys
 			if (customReplacementMap.containsKey(blockId)) {
@@ -128,7 +129,7 @@ public class AutoReplanter implements ModInitializer {
 
 				Item replacementItem = replacement.asItem();
 
-				dropDecrementedLoot(world, pos, replacementItem, state, blockEntity, player, mainTool);
+				processLoot(world, player, pos, state, blockEntity, replacementItem, mainTool, true);
 
 				// Replace with the configured block
 				world.setBlockState(pos, replacement.getDefaultState(), 3);
@@ -147,7 +148,9 @@ public class AutoReplanter implements ModInitializer {
 
 			boolean isMature = isMatureCrop(cropBlock, state);
 
-			processLoot(world, player, pos, state, blockEntity, cropBlock, mainTool, isMature);
+			Item seedItem = cropBlock.asItem();
+
+			processLoot(world, player, pos, state, blockEntity, seedItem, mainTool, isMature);
 
 			// Replant the crop at age 0 (regardless of maturity)
 			world.setBlockState(pos, cropBlock.withAge(0), 3);
@@ -196,25 +199,20 @@ public class AutoReplanter implements ModInitializer {
 	 * and spawns them in the world.
 	 * </p>
 	 *
-	 * @param world       The world where the crop is being broken.
-	 * @param player      The player breaking the crop.
-	 * @param pos         The position of the crop block.
-	 * @param state       The block state of the crop.
-	 * @param blockEntity The block entity at the crop's position, if any.
-	 * @param cropBlock   The crop block being broken.
-	 * @param mainTool    The tool used to break the crop.
-	 * @param isMature    Whether the crop is fully grown.
+	 * @param world          The world where the crop is being broken.
+	 * @param player         The player breaking the crop.
+	 * @param pos            The position of the crop block.
+	 * @param state          The block state of the crop.
+	 * @param blockEntity    The block entity at the crop's position, if any.
+	 * @param cropBlock      The crop block being broken.
+	 * @param mainTool       The tool used to break the crop.
+	 * @param shouldDropLoot Whether the crop is fully grown.
 	 */
 	private void processLoot(World world, PlayerEntity player, BlockPos pos, BlockState state,
-			@Nullable BlockEntity blockEntity, CropBlock cropBlock, ItemStack mainTool, boolean isMature) {
+			@Nullable BlockEntity blockEntity, Item itemToDecrement, ItemStack mainTool, boolean shouldDropLoot) {
 		// Only drop loot if the crop is mature
-		if (isMature) {
 
-			// Get the seed item for this crop
-			Item seedItem = cropBlock.asItem();
-
-			dropDecrementedLoot(world, pos, seedItem, state, blockEntity, player, mainTool);
-		}
+		dropDecrementedLoot(world, pos, itemToDecrement, state, blockEntity, player, mainTool);
 	}
 
 	private void dropDecrementedLoot(World world, BlockPos pos, Item itemToDecrement, BlockState state,
@@ -227,8 +225,8 @@ public class AutoReplanter implements ModInitializer {
 		// Process each dropped stack
 		for (ItemStack stack : droppedStacks) {
 
-			if (stack.getItem() == itemToDecrement && stack.getCount() > 1) {
-				// Decrement by 1 if it's the seed and there's more than 1
+			if (stack.getItem() == itemToDecrement) {
+				// Decrement by 1 if it's the seed/replacement block/item
 				stack.decrement(1);
 			}
 

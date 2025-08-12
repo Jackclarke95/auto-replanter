@@ -12,7 +12,6 @@ A Minecraft Fabric mod that automatically replants crops when harvested, elimina
 - **Dual Tool Validation System**: Choose between tag-based and specific item-based tool requirements
 - **Configurable Tool Requirements**: Choose whether specific tools are required for auto-replanting
 - **Smart Tool Damage**: Tools take durability damage with full enchantment support (such as Unbreaking)
-- **Mature vs Immature Handling**: Different behaviour for fully grown vs growing crops
 - **Sneak Mode Control**: Configure auto-replanting to work always, only while sneaking, or only while standing
 - **Highly Configurable**: Extensive configuration options to customise behaviour
 - **Mod Compatibility**: Works with any modded crops that extend Minecraft's `CropBlock`
