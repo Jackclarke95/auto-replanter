@@ -134,7 +134,7 @@ public class AutoReplanter implements ModInitializer {
 			// Get the block ID string directly from the block being broken
 			String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
 
-			if (customReplacementMap.containsKey(blockId)) {
+			if (config.useCustomBlockReplacements && customReplacementMap.containsKey(blockId)) {
 				CustomBlockReplacementEntry entry = customReplacementMap.get(blockId);
 
 				handleBlockBreaking(world, player, position, state, blockEntity, mainTool,

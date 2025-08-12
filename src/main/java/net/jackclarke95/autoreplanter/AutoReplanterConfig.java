@@ -181,6 +181,14 @@ public class AutoReplanterConfig {
                                         true));
 
         /**
+         * Whether to enable custom block replacement logic.
+         * When set to false, the customBlockReplacements list is ignored.
+         * 
+         * @default true
+         */
+        public boolean useCustomBlockReplacements = true;
+
+        /**
          * Represents a custom block replacement rule.
          */
         public static class CustomBlockReplacement {
