@@ -159,4 +159,54 @@ public class AutoReplanterConfig {
         public SneakMode getSneakMode() {
                 return sneakMode != null ? sneakMode : SneakMode.ALWAYS;
         }
+
+        /**
+         * List of custom block replacement rules.
+         * Each entry is a mapping from a single target block ID to a replacement block
+         * ID, and whether breaking this block should cost tool durability.
+         * <p>
+         * Example:
+         * </p>
+         * [
+         * { "target": "farmersdelight:brown_mushroom_colony", "replacement":
+         * "minecraft:brown_mushroom", "damageTool": true },
+         * { "target": "farmersdelight:red_mushroom_colony", "replacement":
+         * "minecraft:red_mushroom", "damageTool": false }
+         * ]
+         */
+        public List<CustomBlockReplacement> customBlockReplacements = List.of(
+                        new CustomBlockReplacement("farmersdelight:brown_mushroom_colony", "minecraft:brown_mushroom",
+                                        true),
+                        new CustomBlockReplacement("farmersdelight:red_mushroom_colony", "minecraft:red_mushroom",
+                                        true));
+
+        /**
+         * Whether to enable custom block replacement logic.
+         * When set to false, the customBlockReplacements list is ignored.
+         * 
+         * @default true
+         */
+        public boolean useCustomBlockReplacements = true;
+
+        /**
+         * Represents a custom block replacement rule.
+         */
+        public static class CustomBlockReplacement {
+                public String target;
+                public String replacement;
+                public boolean damageTool;
+
+                /**
+                 * Constructs a custom block replacement rule.
+                 * 
+                 * @param target      The target block ID to replace.
+                 * @param replacement The ID of the block to replace with.
+                 * @param damageTool  Whether breaking this block should cost tool durability.
+                 */
+                public CustomBlockReplacement(String target, String replacement, boolean damageTool) {
+                        this.target = target;
+                        this.replacement = replacement;
+                        this.damageTool = damageTool;
+                }
+        }
 }
