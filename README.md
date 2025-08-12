@@ -104,11 +104,6 @@ Each custom block replacement rule has the following structure:
     "target": "farmersdelight:red_mushroom_colony", 
     "replacement": "minecraft:red_mushroom",
     "damageTool": false
-  },
-  {
-    "target": "modname:custom_flower",
-    "replacement": "minecraft:poppy",
-    "damageTool": true
   }
 ]
 ```
