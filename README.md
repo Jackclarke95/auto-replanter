@@ -289,6 +289,6 @@ If you encounter any issues or have suggestions, please:
 ---
 
 **Author**: jackclarke95  
-**Version**: 1.2.0  
+**Version**: 1.3.1
 **Minecraft**: 1.21.1  
 **Mod Loader**: Fabric
